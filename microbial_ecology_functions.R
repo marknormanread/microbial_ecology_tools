@@ -21,6 +21,8 @@ within_between_group_distances = function(
   xlimits=NULL  # or c(lower_limit, upper_limit)
 )
 {
+  dir.create(plotsave_prefix, showWarnings = FALSE)  # Creat if it doesn't already exist. 
+  
   group_set = as.vector(unique(group_vector))  # Contrast only the groups in the supplied vector
   # Store pairwise group comparisons in terms of kolmogorov smirnov D and associated  p values in these nxn dataframes.
   group_differences_ks = data.frame(matrix(nrow=length(group_set), ncol=length(group_set)))
