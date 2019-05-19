@@ -26,13 +26,32 @@ TSS_normalisation = function(x) { x/sum(x) }
 plot_feature_abundances = function(feature_table,  # Features as columns, samples as rows. Counts (not rel. abundance).
                                    xlab = 'Features, sorted by % total counts',
                                    ylab = 'Percent of total counts (%)',
-                                   plot_log = TRUE)
+                                   plot_log = TRUE,
+                                   plot_ggplot = FALSE,
+                                   filter_relative_abundance = -Inf,  # Exclude features with percentate less than this. 
+                                   filter_n_abundant = Inf  # Include the top n.
+                                   )
 {
   feature_percent_all_counts = (100 * colSums(feature_table)) / sum(colSums(feature_table))
   feature_percent_all_counts = sort(feature_percent_all_counts, decreasing=TRUE)
-  plot(feature_percent_all_counts, xlab=xlab, ylab=ylab)
-  if (plot_log)
-    plot(feature_percent_all_counts, xlab=xlab, ylab=ylab, log='y')
+  # Filter out ASV capturing less than this given relative abundance
+  feature_percent_all_counts = feature_percent_all_counts[feature_percent_all_counts >= filter_relative_abundance]
+  # Show only top n ASV by relative abundance. 
+  feature_percent_all_counts = feature_percent_all_counts[1: min(length(feature_percent_all_counts), filter_n_abundant)]
+  if (plot_ggplot)
+  {
+    df = data.frame(feature_percent_all_counts, rank=1:length(feature_percent_all_counts))
+    p = ggplot(df, aes(x=rank, y=feature_percent_all_counts)) +
+        # geom_point() +
+        ylab(ylab) +
+        xlab(xlab)
+    return(p)
+  }
+  else {
+    plot(feature_percent_all_counts, xlab=xlab, ylab=ylab)
+    if (plot_log)
+      plot(feature_percent_all_counts, xlab=xlab, ylab=ylab, log='y')
+  }
 }
 
 #### mixOmics adheres to traditional format of features as columns, however many microbial ecology bioinformatics 
@@ -128,24 +147,27 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                     style = 'ggplot2'  # Set to return ggplot object as res$graph. Supposed to be default but doens't work.
                     )
   }
-  p = res$graph
+  # MixOmics labels axes "X-variate". Much more meaningful to say "Component". 
+  res$graph$labels$x = gsub('X-variate', 'Component', res$graph$labels$x)
+  res$graph$labels$y = gsub('X-variate', 'Component', res$graph$labels$y)
+  
   if (spartan_plot)
   {
-    p = p + theme(legend.position="none",
+    res$graph = res$graph + theme(legend.position="none",
                   text = element_text(size=fontsize),
                   axis.text = element_blank(),  # Turn off tick label titles.
                   axis.ticks = element_blank()  # Turn off black tick marks.
                   # plot.title = element_text(size=fontsize)
                   # Haven't been able to turn off the plot title completely. Stuck with the grey bar at top.
                   )
-    p
+    res$graph
   }
   
   if (! is.null(filename)) {
     # dev.print(pdf, filename)
     ggsave(filename, width=dimensions_mm[1], height=dimensions_mm[2], units='mm')
   }
-  return(invisible(res))
+  return(invisible(res$graph))
 }
 
 #### Wrapper that handles a select number of components for a splsda model. 
