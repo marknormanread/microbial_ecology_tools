@@ -71,7 +71,7 @@ ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = 
   if (! is.null(selected_colors))
     p <- p + scale_colour_manual(values=selected_colors)
   
-  p <- p + ggplot2::labs(x = "Number of sequences", y = "Unique ASVs found")
+  p <- p + ggplot2::labs(x = "Number of sequences", y = "Unique ASVs found per sample")
   
   if (!is.null(label)) {
     p <- p + ggplot2::geom_text(data = labels,
