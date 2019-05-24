@@ -181,6 +181,7 @@ extract_important_features_all_components = function(
   # a human-readable string (column named "name").
   feature_map = NULL)
 {
+  all_component_features = list()  # Populate in following loop.
   # Analyse each component in turn. Plot loadings, and output table that also describes stability in selection under LOO.
   for (component in 1:max_components) {
     contributions = plotLoadings(model, comp=component, 
@@ -193,10 +194,23 @@ extract_important_features_all_components = function(
       component=component,
       filename=paste(csv_file_prefix, '_loadingsDim', component, '_selectedFeatures.csv', sep=''),
       feature_map=feature_map)
+    all_component_features[[paste('component', component, sep='')]] = comp_features
     if (plot_loadings)
       pl = plotLoadings(model, comp=component, method='median',  # Advised for microbiome data
                         contrib='max')  
   }
+  # How many features used in each component, and for each group. 
+  for (component in 1:select_ncomp) {
+    used_features = all_component_features[[component]][complete.cases(all_component_features[[component]]), ]
+    cat('\nComponent', component, 'employed', dim(used_features)[1], 'features\n')
+    groups = unique(used_features$GroupContrib)
+    for (group in groups) {
+      group_features = used_features[used_features$GroupContrib == group, ]
+      cat(' ', dim(group_features)[1], 'taxa were associated with group', group, '\n')
+    }
+  }
+  
+  return(invisible(all_component_features))
 }
 
 #### Writes a table, captures features used in training a splsda model, but also queries the performance object 
