@@ -18,7 +18,8 @@ within_between_group_distances = function(
   # If TRUE, plot separate distributions for within groups A and B distances. Otherwise, combine them.
   separate_within_distributions=FALSE,
   titles=TRUE,
-  xlimits=NULL  # or c(lower_limit, upper_limit)
+  xlimits=NULL,  # or c(lower_limit, upper_limit)
+  plot_size = c(34, 22)  # mm
 )
 {
   dir.create(plotsave_prefix, showWarnings = FALSE)  # Creat if it doesn't already exist. 
@@ -102,7 +103,7 @@ within_between_group_distances = function(
                 axis.ticks.length = unit(0, "pt")
                 )
       ggsave(paste(plotsave_prefix, 'group_distances_', group_a, '_vs_', group_b, '.pdf', sep=''),
-             width=34, height=22, units='mm')
+             width=plot_size[1], height=plot_size[2], units='mm')
     }
 
     
