@@ -214,6 +214,69 @@ ordinate_1d = function(splsda_model,
 }
 
 
+#### Gauge the statistical significance of a given real sPLS-DA model's performance by permutation testing. 
+# The real sample-class assignments are permuted and the model is trained again. 
+# Use the supplied arguments in exactly the same manner as the real model was built on (otherwise it is not a fair comparison)
+statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
+                                                     feature_table,  
+                                                     select_max_ncomp, 
+                                                     select_distance,  # e.g. 'mahalanobis.dist'
+                                                     select_test_keepX,  # c(<integer values>)
+                                                     select_error_mode,  # 'BER' or 'overall'
+                                                     select_validation,  # e.g. 'loo'
+                                                     select_logratio = 'CLR',
+                                                     select_cpus = 8, 
+                                                     graph_path = NULL,
+                                                     graph_title = '',
+                                                     real_model_performance,
+                                                     real_model_classes  # vector of classes used for the real model.
+                                                     )
+{
+  set.seed(seed)  # Ensure reproducibility
+  repetitions = repetitions
+  lowest_errors = rep(NA, repetitions)
+  for (repetition in 1:repetitions)
+  {
+    randomised_categories = factor(sample(real_model_classes))  # Shuffle the class labels assigned to our samples.
+    tune_splsda = tune.splsda(X=feature_table, 
+                              Y=randomised_categories,
+                              ncomp=select_max_ncomp, 
+                              logratio=select_logratio, 
+                              test.keepX=select_test_keepX,  
+                              validation=select_validation,
+                              dist=c(select_distance),  
+                              measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.  
+                              scale=TRUE,
+                              near.zero.var=TRUE,
+                              progressBar=FALSE,
+                              cpus=select_cpus
+    )
+    lowest_errors[repetition] = min(tune_splsda$error.rate)
+    select_ncomp = which.min(colMins(tune_splsda$error.rate))
+  }
+  
+  #### Make graph for publication
+  highest_accuracies = 1 - lowest_errors  # Paper is written in terms of accuracy, not error. 
+  df = data.frame(accuracies = highest_accuracies)
+  p = ggplot(df, aes(accuracies)) + stat_ecdf(geom = "step") + 
+    ggtitle(graph_title) +
+    xlab('Highest accuracies following tuning (%)') + 
+    ylab('Cumulative distribution') +
+    xlim(c(0, 1)) + ylim(c(0, 1)) +
+    theme(text = element_text(size=8))
+  if (! is.null(graph_path)) {
+    ggsave(graph_path, width=7, height=5, units='cm')
+  }
+  
+  real_data_accuracy = 1 - real_model_performance$error.rate[[select_error_mode]][, select_distance]
+  beaten_by_random = sum(sort(highest_accuracies) >= real_data_accuracy)
+  cat('Highest accuracy from the real model was', 100*real_data_accuracy, '%\n')
+  cat('Random group re-assignments beat the performance of the real data (accuracy)', beaten_by_random, 'times\n')
+
+  return(invisible(list(plot=p, highest_accuracies=sort(highest_accuracies), lowest_errors=sort(lowest_errors))))
+}
+
+
 #### Wrapper that handles a select number of components for a splsda model. 
 extract_important_features_all_components = function(
   model,  # an splsda model
