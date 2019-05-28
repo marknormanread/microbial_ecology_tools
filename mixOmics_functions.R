@@ -170,6 +170,50 @@ ordinate = function(projection,  # A PCA or sPLS-DA
   return(invisible(res$graph))
 }
 
+
+ordinate_1d = function(splsda_model, 
+                       shape_vector = NULL,
+                       col_per_group = NULL,
+                       y_label = 'Groups\nseparated',
+                       graph_path = NULL,  # Location on filesystem. Remember to provide file extension. 
+                       width_mm = 60, height_mm = 30
+                       )
+{
+  # if (is.null(shape_vector)) {
+  #   shape_vector = rep(16, length(splsda_model$variates$X))
+  # }
+  
+  data_df = data.frame(comp = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
+                       group_labels = splsda_model$Y) #, 
+                       # shape = shape_vector)
+  names(data_df)[which(names(data_df) == 'comp.1')] = 'value'  # Rename column. 
+  # p = ggplot(data_df, aes(x=value, y=component, color=group_labels, shape=shape)) +
+  p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
+    geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels)) +
+    theme(text = element_text(size=8)) +
+    theme(legend.position="none") +
+    ylab(y_label) +
+    theme(axis.title.y = element_text(size=7)) +
+    theme(axis.text.y = element_blank()) +  # Turn off tick label titles.
+    xlab(paste('PC1:', round(100 * splsda_model$explained_variance$X), 'expl. var')) +
+    theme(axis.title.x = element_text(size=7)) +
+    theme(axis.text.x = element_blank()) +  # Turn off tick label titles.
+    theme(axis.ticks = element_blank())  # Turn off black tick marks.
+  if (! is.null(col_per_group)) {
+    p = p + scale_color_manual(values=col_per_group)
+  }
+  if (! is.null(shape_vector)) {
+    p = p + scale_shape_manual(values = shape_vector)
+  }
+    
+    
+  if (! is.null(graph_path)) {
+    ggsave(graph_path, width=width_mm, height=height_mm, units='mm')
+  }
+  return(p)
+}
+
+
 #### Wrapper that handles a select number of components for a splsda model. 
 extract_important_features_all_components = function(
   model,  # an splsda model
