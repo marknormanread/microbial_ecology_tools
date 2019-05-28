@@ -110,6 +110,9 @@ within_between_group_distances = function(
     # Write to dataframe of results
     group_differences_ks[group_b, group_a] = ks$statistic
     group_differences_p[group_b, group_a] = p_value
+    # Put in the upper triangle too. It's redundant data, but easier for look up. 
+    group_differences_ks[group_a, group_b] = group_differences_ks[group_b, group_a]
+    group_differences_p[group_a, group_b] = group_differences_p[group_b, group_a]
   }
   return(list(group_differences_ks=group_differences_ks, 
               group_differences_p=group_differences_p))
