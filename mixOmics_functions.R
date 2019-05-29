@@ -252,26 +252,35 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                               cpus=select_cpus
     )
     lowest_errors[repetition] = min(tune_splsda$error.rate)
-    select_ncomp = which.min(colMins(tune_splsda$error.rate))
   }
-  
+
   #### Make graph for publication
-  highest_accuracies = 1 - lowest_errors  # Paper is written in terms of accuracy, not error. 
+  # Paper is written in terms of accuracy, not error. 
+  real_model_best_accuracy = 100 * (1 - tail(real_model_performance$error.rate[[select_error_mode]][, select_distance], n=1))
+  highest_accuracies = (1 - lowest_errors) * 100
+  
   df = data.frame(accuracies = highest_accuracies)
   p = ggplot(df, aes(accuracies)) + stat_ecdf(geom = "step") + 
+    # Represent where the real model's accuacy lay. 
+    geom_vline(xintercept=real_model_best_accuracy, color='red') +
     ggtitle(graph_title) +
     xlab('Highest accuracies following tuning (%)') + 
     ylab('Cumulative distribution') +
-    xlim(c(0, 1)) + ylim(c(0, 1)) +
+    xlim(c(0, 100)) + ylim(c(0, 1)) +
     theme(text = element_text(size=8))
   if (! is.null(graph_path)) {
     ggsave(graph_path, width=7, height=5, units='cm')
   }
   
-  real_data_accuracy = 1 - real_model_performance$error.rate[[select_error_mode]][, select_distance]
-  beaten_by_random = sum(sort(highest_accuracies) >= real_data_accuracy)
-  cat('Highest accuracy from the real model was', 100*real_data_accuracy, '%\n')
+  beaten_by_random = sum(sort(highest_accuracies) >= real_model_best_accuracy)
+  p_val_resolution = 1 / repetitions
+  p_value_upper = (beaten_by_random + 1) * p_val_resolution
+  p_value_lower = beaten_by_random * p_val_resolution
+  cat('Highest accuracy from the real model was', real_model_best_accuracy, '%\n')
   cat('Random group re-assignments beat the performance of the real data (accuracy)', beaten_by_random, 'times\n')
+  cat('This gives a p-value in range:', 
+      p_value_upper, '< p <=', p_value_lower, 
+      '(', repetitions, 'repetitions, giving p-resolution of', p_val_resolution, ')')
 
   return(invisible(list(plot=p, highest_accuracies=sort(highest_accuracies), lowest_errors=sort(lowest_errors))))
 }
