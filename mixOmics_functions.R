@@ -256,7 +256,7 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
 
   #### Make graph for publication
   # Paper is written in terms of accuracy, not error. 
-  real_model_best_accuracy = 100 * (1 - tail(real_model_performance$error.rate[[select_error_mode]][, select_distance], n=1))
+  real_model_best_accuracy = 100 * (1 - tail(real_model_performance$error.rate[[select_error_mode]][, paste(select_distance, '.dist', sep='')], n=1))
   highest_accuracies = (1 - lowest_errors) * 100
   
   df = data.frame(accuracies = highest_accuracies)
