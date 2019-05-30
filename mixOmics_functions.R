@@ -184,12 +184,20 @@ ordinate_1d = function(splsda_model,
   # }
   
   data_df = data.frame(comp = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
-                       group_labels = splsda_model$Y) #, 
-                       # shape = shape_vector)
+                       group_labels = splsda_model$Y, 
+                       shape = shape_vector)
   names(data_df)[which(names(data_df) == 'comp.1')] = 'value'  # Rename column. 
-  # p = ggplot(data_df, aes(x=value, y=component, color=group_labels, shape=shape)) +
-  p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
-    geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels)) +
+  if (! is.null(shape_vector)) {
+    # There is shape information; separate gtoups by this too. 
+    p = ggplot(data_df, aes(x=value, y=component, color=group_labels, shape=shape)) +
+      # cex adjusts point spacing within group dodge.width adjusts spacing between groups. 
+      geom_beeswarm(cex = 5.0, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape))
+  } else {
+    
+    p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
+      geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels))
+  }
+  p = p +
     theme(text = element_text(size=8)) +
     theme(legend.position="none") +
     ylab(y_label) +
@@ -202,11 +210,7 @@ ordinate_1d = function(splsda_model,
   if (! is.null(col_per_group)) {
     p = p + scale_color_manual(values=col_per_group)
   }
-  if (! is.null(shape_vector)) {
-    p = p + scale_shape_manual(values = shape_vector)
-  }
-    
-    
+
   if (! is.null(graph_path)) {
     ggsave(graph_path, width=width_mm, height=height_mm, units='mm')
   }
@@ -394,7 +398,8 @@ extract_taxa_possessing_enzyme = function(
   asv_possessing_ec$Sequence_16S = rownames(asv_possessing_ec)  # Sequence as last column. 
   if (! is.null(filename))
     write.csv(asv_possessing_ec, file=filename, quote=FALSE, row.names=FALSE)
-  cat('Found', length(asv_ids_possessing_ec), 'capable of producing', enzyme, '-', enzyme_function)
+  cat('Found', length(asv_ids_possessing_ec), 'capable of producing', enzyme, '-', enzyme_function, 
+      'out of', dim(ec_asv_tab)[1],'\n')
   if (return_table)
     return(asv_possessing_ec)
 }
