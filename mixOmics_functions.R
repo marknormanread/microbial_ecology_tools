@@ -222,7 +222,7 @@ ordinate_1d = function(splsda_model,
 # The real sample-class assignments are permuted and the model is trained again. 
 # Use the supplied arguments in exactly the same manner as the real model was built on (otherwise it is not a fair comparison)
 statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
-                                                     feature_table,  
+                                                     feature_table,  # Features as columns, instances as rows.
                                                      select_max_ncomp, 
                                                      select_distance,  # e.g. 'mahalanobis.dist'
                                                      select_test_keepX,  # c(<integer values>)
@@ -230,7 +230,7 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                                                      select_validation,  # e.g. 'loo'
                                                      select_logratio = 'CLR',
                                                      select_cpus = 8, 
-                                                     graph_path = NULL,
+                                                     data_write_path = NULL,  # Do not include extensions e.g. '.pdf'
                                                      graph_title = '',
                                                      real_model_performance,
                                                      real_model_classes  # vector of classes used for the real model.
@@ -260,7 +260,10 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
 
   #### Make graph for publication
   # Paper is written in terms of accuracy, not error. 
-  real_model_best_accuracy = 100 * (1 - tail(real_model_performance$error.rate[[select_error_mode]][, paste(select_distance, '.dist', sep='')], n=1))
+  real_model_best_accuracy = 100 * (1 - 
+            # Gets the last item, which is be the best performance.  
+            tail(real_model_performance$error.rate[[select_error_mode]][, paste(select_distance, '.dist', sep='')], 
+            n=1))
   highest_accuracies = (1 - lowest_errors) * 100
   
   df = data.frame(accuracies = highest_accuracies)
@@ -272,20 +275,22 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
     ylab('Cumulative distribution') +
     xlim(c(0, 100)) + ylim(c(0, 1)) +
     theme(text = element_text(size=8))
-  if (! is.null(graph_path)) {
-    ggsave(graph_path, width=7, height=5, units='cm')
+  if (! is.null(data_write_path)) {
+    ggsave(paste(data_write_path, '.pdf', sep = ''), width=7, height=5, units='cm')
   }
   
   beaten_by_random = sum(sort(highest_accuracies) >= real_model_best_accuracy)
   p_val_resolution = 1 / repetitions
   p_value_upper = (beaten_by_random + 1) * p_val_resolution
   p_value_lower = beaten_by_random * p_val_resolution
-  cat('Highest accuracy from the real model was', real_model_best_accuracy, '%\n')
-  cat('Random group re-assignments beat the performance of the real data (accuracy)', beaten_by_random, 'times\n')
-  cat('This gives a p-value in range:', 
-      p_value_upper, '< p <=', p_value_lower, 
-      '(', repetitions, 'repetitions, giving p-resolution of', p_val_resolution, ')')
-
+  results_text = paste(
+    'Highest accuracy from the real model was ', real_model_best_accuracy, '%\n',
+    'Random group re-assignments beat the performance of the real data (accuracy) ', beaten_by_random, ' times\n',
+    'This gives a p-value in range: ', 
+    p_value_upper, ' < p <= ', p_value_lower, 
+    ' (', repetitions, ' repetitions, giving p-resolution of ', p_val_resolution, ')\n', sep = '')
+  print(results_text)
+  cat(results_text, file = paste(data_write_path, '.txt', sep = ''))  # Write to file. 
   return(invisible(list(plot=p, highest_accuracies=sort(highest_accuracies), lowest_errors=sort(lowest_errors))))
 }
 
