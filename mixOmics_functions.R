@@ -161,14 +161,13 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                   # plot.title = element_text(size=fontsize)
                   # Haven't been able to turn off the plot title completely. Stuck with the grey bar at top.
                   )
-    res$graph
+    
   }
-  
+
   if (! is.null(filename)) {
-    # dev.print(pdf, filename)
     ggsave(filename, width=dimensions_mm[1], height=dimensions_mm[2], units='mm')
   }
-  return(invisible(res$graph))
+  return(res$graph)
 }
 
 
