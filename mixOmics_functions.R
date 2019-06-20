@@ -42,7 +42,7 @@ plot_feature_abundances = function(feature_table,  # Features as columns, sample
   {
     df = data.frame(feature_percent_all_counts, rank=1:length(feature_percent_all_counts))
     p = ggplot(df, aes(x=rank, y=feature_percent_all_counts)) +
-        # geom_point() +
+        geom_point() +
         ylab(ylab) +
         xlab(xlab)
     return(p)
