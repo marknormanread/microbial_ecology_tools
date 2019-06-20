@@ -54,7 +54,8 @@ plot_feature_abundances = function(feature_table,  # Features as columns, sample
   }
 }
 
-#### mixOmics adheres to traditional format of features as columns, however many microbial ecology bioinformatics 
+#### Transforms a raw feature-sample (as rows-cols) table into transposed relative abundance (total sum scaling).
+# mixOmics adheres to traditional format of features as columns, however many microbial ecology bioinformatics 
 # pipelines place them as rows. 
 # Additionally, this prepares a pseudocount, needed for centred/isometric log ratio transforms, and filters. 
 # Consider if filtering is important before performing it. 
