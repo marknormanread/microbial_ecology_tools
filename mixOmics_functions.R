@@ -290,7 +290,10 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
     p_value_upper, ' < p <= ', p_value_lower, 
     ' (', repetitions, ' repetitions, giving p-resolution of ', p_val_resolution, ')\n', sep = '')
   print(results_text)
-  cat(results_text, file = paste(data_write_path, '.txt', sep = ''))  # Write to file. 
+  # Write to file. 
+  sink(paste(data_write_path, '.txt', sep = ''))
+  print(results_text)  
+  sink()
   return(invisible(list(plot=p, highest_accuracies=sort(highest_accuracies), lowest_errors=sort(lowest_errors))))
 }
 
@@ -331,7 +334,7 @@ extract_important_features_all_components = function(
     groups = unique(used_features$GroupContrib)
     for (group in groups) {
       group_features = used_features[used_features$GroupContrib == group, ]
-      cat(' ', dim(group_features)[1], 'taxa were associated with group', group, '\n')
+      cat(' ', dim(group_features)[1], 'feature(s) were associated with group', group, '\n')
     }
   }
   
