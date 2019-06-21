@@ -416,3 +416,81 @@ extract_taxa_possessing_enzyme = function(
     return(asv_possessing_ec)
 }
 
+standard_full_splsda_pipeline = function(
+  feature_table,  # DataFrame or matrix. Features as columns, instances as rows. Typically relative abundance. 
+  class_labels,  # Vector of factors. One item per instance, in the same order as feature_table. 
+  col_per_group,  # Named vector, e.g. c('TRF' = '#F1234FF', ...)
+  problem_label_human,  # Human-readable title. 
+  problem_label,  # Machine-readable title. (avoid spaces, and capitalisation)
+  perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
+  select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
+  select_validation = 'loo',
+  select_test_keepX = c(1, 2, 3, 4, seq(5, dim(feature_table)[2], 5)),
+  select_distance = c('mahalanobis'),
+  select_error_mode = 'BER',  # {'BER', 'overall'}
+  select_scale = TRUE,
+  select_near_zero_var = TRUE,
+  cpus = 8
+  )
+{
+  dir.create(problem_label, showWarnings = FALSE)
+  
+  tune_splsda = tune.splsda(X = feature_table, 
+                            Y = class_labels,  # Labels
+                            ncomp = select_max_ncomp, 
+                            logratio = 'CLR', 
+                            test.keepX = select_test_keepX,  
+                            validation = select_validation,
+                            dist = c(select_distance),  
+                            measure = select_error_mode,
+                            scale = select_scale,
+                            near.zero.var = select_near_zero_var,
+                            progressBar = FALSE,
+                            cpus = cpus
+                            )
+  plot(tune_splsda)
+  print(tune_splsda$error.rate.class) 
+  
+  select_ncomp = which.min(colMins(tune_splsda$error.rate))
+  cat('Based on optimal performance, selecting', select_ncomp, 'principal component(s) in building the sPLS-DA.\n')
+  select_keepX = tune_splsda$choice.keepX[1:select_ncomp]  # Number of features per component. 
+  cat('Features per component:\n')
+  print(select_keepX)
+  tuned_splsda = splsda(X = feature_table, Y = class_labels, 
+                        ncomp = select_ncomp, keepX = select_keepX,  # From tuning, above. 
+                        logratio = 'CLR', scale = select_scale,  # Microbiome data is compositional. 
+                        near.zero.var = select_near_zero_var)  # Set to true because microbiome data contains many zeros. 
+  
+  p = ordinate(tuned_splsda, background = TRUE,
+               group = class_labels,
+               plot_title = paste('sPLS-DA: ', problem_label_human, sep=''), name_samples = FALSE,
+               col_per_group_map = col_per_group,
+               show_legend = FALSE,
+               dimensions_mm = c(50, 40), fontsize = 7, point_size = 1, spartan_plot = TRUE,
+               filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''))
+  p  # Display graph.
+  tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
+  tuned_splsda_perf$error.rate
+  tuned_splsda_perf$error.rate.class
+  # Write to file system. 
+  sink(paste(problem_label, '/', problem_label, '-splsda-perforance.txt', sep=''))
+  tuned_splsda_perf$error.rate
+  tuned_splsda_perf$error.rate.class
+  sink()
+  
+  # Analyse the features informing each component. 
+  extract_important_features_all_components(
+    model = tuned_splsda, model_perf = tuned_splsda_perf, max_components = select_ncomp, plot_loadings = FALSE, 
+    csv_file_prefix = paste(problem_label, '/', problem_label, '-splsda', sep = '')
+  )
+  
+  # Permutation based statistics. 
+  if (perform_permutation_analysis) {
+    permutation_analysis_results = statisitcal_significance_permutation_test(
+      feature_table = feature_table, select_max_ncomp = select_max_ncomp, select_distance = select_distance,
+      select_test_keepX = select_test_keepX, select_error_mode = select_error_mode, select_validation = select_validation,
+      data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
+      graph_title = paste(problem_label_human, ' (', length(levels(class_labels)),' groups)', sep = ''),
+      real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
+  }
+}
