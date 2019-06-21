@@ -473,7 +473,7 @@ standard_full_splsda_pipeline = function(
   tuned_splsda_perf$error.rate
   tuned_splsda_perf$error.rate.class
   # Write to file system. 
-  sink(paste(problem_label, '/', problem_label, '-splsda-perforance.txt', sep=''))
+  sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
   tuned_splsda_perf$error.rate
   tuned_splsda_perf$error.rate.class
   sink()
