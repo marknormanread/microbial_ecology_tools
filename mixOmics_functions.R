@@ -1,5 +1,5 @@
 library(matrixStats)
-
+library(ggbeeswarm)
 
 #### Filter low value ASVs out of the dataset. 
 # Adapted from http://mixomics.org/mixmc/pre-processing/
@@ -83,7 +83,7 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                     plot_title,
                     filename = NULL,  # Location to save plot. Remember to append '.pdf'. 
                     name_samples = FALSE,  # If TRUE, write name of each sample on the plot.
-                    sample_plot_characters = 16,  # Single char, else vector of n=len(samples). Used if name_samples=TRUE
+                    sample_plot_characters = factor(16),  # Single char, else vector of n=len(samples). Used if name_samples=TRUE
                     ellipse = FALSE,
                     background = NULL,
                     distance = "mahalanobis.dist", 
@@ -107,6 +107,15 @@ ordinate = function(projection,  # A PCA or sPLS-DA
     col_per_group = col_per_group_map[levels(group)]  # Extract the colours pertinent to the groups. 
   }
 
+  if (tuned_splsda$ncomp == 1)
+  {
+    print('Warning! Model has only 1 dimension, executing ordinate_1d plotting procedure instead.')
+    return(ordinate_1d(splsda_model = projection, 
+                       shape_vector = sample_plot_characters, 
+                       col_per_group = col_per_group_map,
+                       graph_path = filename))
+  }
+  
   if (! is.null(fontsize))
     title_fontsize = fontsize
   
@@ -179,10 +188,6 @@ ordinate_1d = function(splsda_model,
                        width_mm = 60, height_mm = 30
                        )
 {
-  # if (is.null(shape_vector)) {
-  #   shape_vector = rep(16, length(splsda_model$variates$X))
-  # }
-  
   data_df = data.frame(comp = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
                        group_labels = splsda_model$Y, 
                        shape = shape_vector)
@@ -193,7 +198,6 @@ ordinate_1d = function(splsda_model,
       # cex adjusts point spacing within group dodge.width adjusts spacing between groups. 
       geom_beeswarm(cex = 5.0, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape))
   } else {
-    
     p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
       geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels))
   }
