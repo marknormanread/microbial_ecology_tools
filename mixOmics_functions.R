@@ -83,7 +83,7 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                     plot_title,
                     filename = NULL,  # Location to save plot. Remember to append '.pdf'. 
                     name_samples = FALSE,  # If TRUE, write name of each sample on the plot.
-                    sample_plot_characters = factor(16),  # Single char, else vector of n=len(samples). Used if name_samples=TRUE
+                    sample_plot_characters = 16,  # Single char, else vector of n=len(samples). Used if name_samples=TRUE
                     ellipse = FALSE,
                     background = NULL,
                     distance = "mahalanobis.dist", 
@@ -107,11 +107,11 @@ ordinate = function(projection,  # A PCA or sPLS-DA
     col_per_group = col_per_group_map[levels(group)]  # Extract the colours pertinent to the groups. 
   }
 
-  if (tuned_splsda$ncomp == 1)
+  if (projection$ncomp == 1)
   {
     print('Warning! Model has only 1 dimension, executing ordinate_1d plotting procedure instead.')
     return(ordinate_1d(splsda_model = projection, 
-                       shape_vector = sample_plot_characters, 
+                       shape_vector = factor(sample_plot_characters), 
                        col_per_group = col_per_group_map,
                        graph_path = filename))
   }
@@ -293,10 +293,10 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
     'This gives a p-value in range: ', 
     p_value_upper, ' < p <= ', p_value_lower, 
     ' (', repetitions, ' repetitions, giving p-resolution of ', p_val_resolution, ')\n', sep = '')
-  print(results_text)
+  cat(results_text)
   # Write to file. 
   sink(paste(data_write_path, '.txt', sep = ''))
-  print(results_text)  
+  cat(results_text)  
   sink()
   return(invisible(list(plot=p, highest_accuracies=sort(highest_accuracies), lowest_errors=sort(lowest_errors))))
 }
@@ -332,7 +332,7 @@ extract_important_features_all_components = function(
                         contrib='max')  
   }
   # How many features used in each component, and for each group. 
-  for (component in 1:select_ncomp) {
+  for (component in 1:max_components) {
     used_features = all_component_features[[component]][complete.cases(all_component_features[[component]]), ]
     cat('\nComponent', component, 'employed', dim(used_features)[1], 'features\n')
     groups = unique(used_features$GroupContrib)
