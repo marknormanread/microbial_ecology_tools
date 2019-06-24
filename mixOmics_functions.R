@@ -211,7 +211,7 @@ ordinate_1d = function(splsda_model,
     ylab(y_label) +
     theme(axis.title.y = element_text(size=7)) +
     theme(axis.text.y = element_blank()) +  # Turn off tick label titles.
-    xlab(paste('PC1:', round(100 * splsda_model$explained_variance$X), 'expl. var')) +
+    xlab(paste('PC1: ', round(100 * splsda_model$explained_variance$X), '% expl. var', sep='')) +
     theme(axis.title.x = element_text(size=7)) +
     theme(axis.text.x = element_blank()) +  # Turn off tick label titles.
     theme(axis.ticks = element_blank())  # Turn off black tick marks.
