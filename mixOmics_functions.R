@@ -64,6 +64,7 @@ plot_feature_cumulative_abundance = function(
   xlab = 'Feature relative abundance',
   ylab = 'Total counts captured (%)',
   plot_log = 'x',
+  percent_cutoff = NULL
   ) 
 {
   feature_ids = rownames(feature_table)
@@ -81,6 +82,9 @@ plot_feature_cumulative_abundance = function(
        xlab = xlab, 
        ylab = ylab,
        log = plot_log)
+  if (! is.null(percent_cutoff)) {
+    abline(v = percent_cutoff)
+  }
 }
 
 #### Transforms a raw feature-sample (as rows-cols) table into transposed relative abundance (total sum scaling).
