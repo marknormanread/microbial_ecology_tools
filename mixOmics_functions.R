@@ -420,6 +420,105 @@ extract_taxa_possessing_enzyme = function(
     return(asv_possessing_ec)
 }
 
+#### Use sPLSDA as a feature selection algorithm, but not as a classifier. 
+# Allows use for other (e.g. nonlinear) classifiers operating over this data. 
+# Requires that a sPLS-DA be tuned before use: select_ncomp and select_keepX need to be provided in advance. 
+# In standard sPLS-DA usage through mixOmics, the splsda-transformed data for each fold cannot be easily extracted. 
+# Hence, this function will do it.
+# Implements its own leave one out cross validation (LOO)-partitioning of the data, trains a sPLS-DA on each fold 
+# and writes the transformed data to the file system. 
+#
+# Data written are:
+# 1. The training X (features) and Y (response)
+# 2. The test X and Y. Files are named with the sample name being withheld in this fold.
+# 3. sPLS-DA transformed training X and test X data. 
+# (4. sPLS-DA loadings are also provided, though I am not sure they are useful)
+# 5. A 2D (or 1D, problem dependent) ordination of the TEST data in sPLS-DA transformed space. This may not be all the 
+#    dimensions, but will help with thinking about the data. 
+#
+# NOTE. I have not seriously attempted any classifiers on the sPLS-DA-transformed data. 
+# The distance-based classification that ensues may already be optimal. 
+extract_loo_folds_splsda_feature_select = function(
+  select_ncomp,  # Integer, # of sPLS-DA components to use. Hence, sPLS-DA training on this data need be done beforehand. 
+  select_keepX,  # Vector of integers, one value per component. 
+  feature_table,  # Samples as rows, features as columns.
+  class_labels,  # Vector of factors, one item per sample.  
+  ordinate_folds = FALSE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
+  col_per_group = NULL  # Vector of named variables: c('group' = '#FAFFFC', ...)
+  )
+{
+  
+  num_samples = length(class_labels)
+  sample_indices = 1:num_samples
+  for (fold in 1:num_samples)  # Leave one out
+  {
+    train_indices = sample_indices[-fold]  # Leaves 'fold' out of the sequence
+    test_indices = sample_indices[fold]
+    
+    train_X = feature_table[train_indices, ]  # The features / taxa
+    train_Y = class_labels[train_indices]  # The response
+    
+    # As usual, R being awesome and all, the return type of this varies with the number of indices given.
+    # If multiple, then a matrix is returned and all works well. However, for a single index, a vector is returned and
+    # that breaks downstream code.
+    # Hence, need to ensure correctly oriented matrix.
+    test_X = feature_table[test_indices, ]  # leave one out, there is only a single sample in each test dataset.
+    if (length(test_indices) == 1) {
+      test_X = t(as.matrix(test_X))
+    }
+    
+    test_Y = class_labels[test_indices]
+    test_sample_name = rownames(feature_table)[fold]
+    
+    # Make directory structure to store the folds in.
+    fold_dir = paste(problem_label, '/loo_folds/', fold, sep='')
+    dir.create(fold_dir, recursive=TRUE, showWarnings=FALSE)
+    
+    # Write the test and training X (predictor, taxa) and Y (response, outcome) data to file system.
+    # Requires some messing around with data frames to correctly label samples and columns, as otus_relab is a matrix.
+    write.csv(as.data.frame(train_X), file=paste(fold_dir, '/train_X_.csv', sep=''),
+              quote=FALSE)
+    train_Y_df = data.frame(train_Y, row.names=rownames(train_X), check.names=FALSE)
+    colnames(train_Y_df) = c('Response')  # Give name to column. 
+    write.csv(train_Y_df,
+              file=paste(fold_dir, '/train_Y_.csv', sep=''),
+              quote=FALSE)
+    
+    test_X_df = data.frame(test_X, row.names=c(test_sample_name), check.names=FALSE)
+    write.csv(test_X_df,
+              file=paste(fold_dir, '/test_X_', test_sample_name, '.csv', sep=''),  quote=FALSE)
+    test_Y_df = data.frame(test_Y, row.names=c(test_sample_name))
+    colnames(test_Y_df) = c('Response')
+    write.csv(test_Y_df, file=paste(fold_dir, '/test_Y_', test_sample_name, '.csv', sep=''),  quote=FALSE)
+    
+    fold_splsda = splsda(train_X, Y=train_Y, ncomp=select_ncomp, logratio='CLR', keepX=select_keepX)
+    write.csv(fold_splsda$variates$X, file=paste(fold_dir, '/splsda_transformed-train_X.csv', sep=''))
+    if (ordinate_folds){
+      p = ordinate(fold_splsda, background = TRUE,
+                   group = class_labels,
+                   plot_title = paste('sPLS-DA: ', problem_label_human, sep=''), name_samples = FALSE,
+                   col_per_group_map = col_per_group,
+                   show_legend = FALSE,
+                   dimensions_mm = c(50, 40), fontsize = 7, point_size = 1, spartan_plot = TRUE,
+                   filename = paste(fold_dir, '/', problem_label, 'splsda-training_data.pdf', sep='')
+      )
+    }
+    
+    # Write loadings to file.
+    write.csv(fold_splsda$loadings$X, file=paste(fold_dir, '/splsda_transformed-train_loadings.csv', sep=''))
+    
+    # This handles centering, scaling and performig a CLR, all based on data stored within the splsda object.
+    res = splsda_transform(object=fold_splsda, newdata=test_X)
+    test_transformed = res$newdata.transformed$X
+    # Set names consistent with training data.
+    colnames(test_transformed) = colnames(fold_splsda$variates$X)
+    if (length(test_sample_name) == 1)
+      rownames(test_transformed) = c(test_sample_name)
+    write.csv(test_transformed, file=paste(fold_dir, '/splsda_transformed-test_X-', test_sample_name, '.csv', sep=''))
+  }
+}
+
+
 standard_full_splsda_pipeline = function(
   feature_table,  # DataFrame or matrix. Features as columns, instances as rows. Typically relative abundance. 
   class_labels,  # Vector of factors. One item per instance, in the same order as feature_table. 
@@ -435,6 +534,7 @@ standard_full_splsda_pipeline = function(
   select_scale = TRUE,
   select_near_zero_var = TRUE,
   cpus = 8,
+  extract_loo_folds = FALSE,
   cex_1D = 5.0  # Spacing between groups on a 1D swarm plot. 
   )
 {
@@ -500,5 +600,17 @@ standard_full_splsda_pipeline = function(
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(levels(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
+  }
+  
+  # Extract sPLS-DA-transformed training and test data generated from within a LOO loop. 
+  # Enables other external classifiers to be used. 
+  if (extract_loo_folds) {
+    extract_loo_folds_splsda_feature_select(
+      select_ncomp = select_ncomp,
+      select_keepX = select_keepX,  # Vector of integers, one value per component. 
+      feature_table = feature_table,  # Samples as rows, features as columns.
+      class_labels = class_labels,  # Vector of factors, one item per sample.  
+      ordinate_folds = TRUE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
+      col_per_group = col_per_group)
   }
 }
