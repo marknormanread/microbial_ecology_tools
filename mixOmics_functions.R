@@ -539,6 +539,10 @@ standard_full_splsda_pipeline = function(
   )
 {
   dir.create(problem_label, showWarnings = FALSE)
+  if (max(select_test_keepX) > dim(feature_table)[2]){
+    cat('Warning! Selected to test more features per component than there are features. Curtailing select_test_keepX.')
+    select_test_keepX = select_test_keepX[select_test_keepX < dim(feature_table)[2]]
+  }
   
   tune_splsda = tune.splsda(X = feature_table, 
                             Y = class_labels,  # Labels
