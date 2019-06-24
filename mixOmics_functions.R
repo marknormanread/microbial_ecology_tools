@@ -54,6 +54,35 @@ plot_feature_abundances = function(feature_table,  # Features as columns, sample
   }
 }
 
+#### Helps in selecting cutoff threshold for filtering feature-instance tables. 
+# Each feature is a datapoint. 
+# Plots feature relative abundance (where you would be filtering) against cumulative count of reads captured as a %.
+# Hence, you can see (for example) that retaining features with >0.1% relative abundance of whole dataset 
+#   captures 90% of all reads in the dataset. 
+plot_feature_cumulative_abundance = function(
+  feature_table,  # Features as columns, samples as rows. Counts (not rel. abundance).
+  xlab = 'Feature relative abundance',
+  ylab = 'Total counts captured (%)',
+  plot_log = 'x',
+  ) 
+{
+  feature_ids = rownames(feature_table)
+  
+  total_reads = sum(feature_table)
+  feature_read_count = c()  # Named vector (Dictionary), [Feature ID] = # reads feature captures. 
+  for (f_id in feature_ids) {
+    feature_read_count[f_id] = sum(feature_table[f_id, ])  # Counts captured by this feature across all samples. 
+  }  
+  feature_read_count = rev(sort(feature_read_count))
+  feature_read_count_relab = 100 * feature_read_count / total_reads
+  feature_read_count_cumulative = 100 * cumsum(feature_read_count)  # Cumulative count
+  feature_read_count_cumulative = feature_read_count_cumulative / total_reads  # Turn into proportion of all counts observed. 
+  plot(x = feature_read_count_relab, y = feature_read_count_cumulative, 
+       xlab = xlab, 
+       ylab = ylab,
+       log = plot_log)
+}
+
 #### Transforms a raw feature-sample (as rows-cols) table into transposed relative abundance (total sum scaling).
 # mixOmics adheres to traditional format of features as columns, however many microbial ecology bioinformatics 
 # pipelines place them as rows. 
