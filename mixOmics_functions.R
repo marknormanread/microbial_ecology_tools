@@ -291,7 +291,7 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
     'Highest accuracy from the real model was ', real_model_best_accuracy, '%\n',
     'Random group re-assignments beat the performance of the real data (accuracy) ', beaten_by_random, ' times\n',
     'This gives a p-value in range: ', 
-    p_value_upper, ' < p <= ', p_value_lower, 
+    p_value_lower, ' < p <= ', p_value_upper, 
     ' (', repetitions, ' repetitions, giving p-resolution of ', p_val_resolution, ')\n', sep = '')
   cat(results_text)
   # Write to file. 
@@ -474,8 +474,8 @@ standard_full_splsda_pipeline = function(
   tuned_splsda_perf$error.rate.class
   # Write to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
-  tuned_splsda_perf$error.rate
-  tuned_splsda_perf$error.rate.class
+  print(tuned_splsda_perf$error.rate)
+  print(tuned_splsda_perf$error.rate.class)
   sink()
   
   # Analyse the features informing each component. 
