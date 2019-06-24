@@ -95,7 +95,9 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                     fontsize = NULL,
                     title_fontsize = 18,  # Overriden by fontsize, if it is specified. 
                     spartan_plot = FALSE,  # Disable axis tick marks, ticks lines,  
-                    point_size = 3)
+                    point_size = 3,
+                    cex_1D = 5.0  # In case switch to 1D mode. 
+                    )
 {
   if (is.null(col_per_group_map))
   {
@@ -109,11 +111,12 @@ ordinate = function(projection,  # A PCA or sPLS-DA
 
   if (projection$ncomp == 1)
   {
-    print('Warning! Model has only 1 dimension, executing ordinate_1d plotting procedure instead.')
+    cat('Warning! Model has only 1 dimension, executing ordinate_1d plotting procedure instead.\n')
     return(ordinate_1d(splsda_model = projection, 
                        shape_vector = factor(sample_plot_characters), 
                        col_per_group = col_per_group_map,
-                       graph_path = filename))
+                       graph_path = filename,
+                       cex_1D = cex_1D))
   }
   
   if (! is.null(fontsize))
@@ -185,7 +188,8 @@ ordinate_1d = function(splsda_model,
                        col_per_group = NULL,
                        y_label = 'Groups\nseparated',
                        graph_path = NULL,  # Location on filesystem. Remember to provide file extension. 
-                       width_mm = 60, height_mm = 30
+                       width_mm = 60, height_mm = 30,
+                       cex_1D = 5.0  # Spacing within groups on the swarm plot. 
                        )
 {
   data_df = data.frame(comp = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
@@ -193,10 +197,10 @@ ordinate_1d = function(splsda_model,
                        shape = shape_vector)
   names(data_df)[which(names(data_df) == 'comp.1')] = 'value'  # Rename column. 
   if (! is.null(shape_vector)) {
-    # There is shape information; separate gtoups by this too. 
+    # There is shape information; separate groups by this too. 
     p = ggplot(data_df, aes(x=value, y=component, color=group_labels, shape=shape)) +
-      # cex adjusts point spacing within group dodge.width adjusts spacing between groups. 
-      geom_beeswarm(cex = 5.0, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape))
+      # cex adjusts point spacing within group; dodge.width adjusts spacing between groups. 
+      geom_beeswarm(cex = cex_1D, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape))
   } else {
     p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
       geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels))
@@ -288,7 +292,7 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
   p_value_upper = (beaten_by_random + 1) * p_val_resolution
   p_value_lower = beaten_by_random * p_val_resolution
   results_text = paste(
-    'Highest accuracy from the real model was ', real_model_best_accuracy, '%\n',
+    'Highest accuracy from the real model was ', real_model_best_accuracy, '% (using ', select_error_mode, 'error calculations)\n',
     'Random group re-assignments beat the performance of the real data (accuracy) ', beaten_by_random, ' times\n',
     'This gives a p-value in range: ', 
     p_value_lower, ' < p <= ', p_value_upper, 
@@ -430,7 +434,8 @@ standard_full_splsda_pipeline = function(
   select_error_mode = 'BER',  # {'BER', 'overall'}
   select_scale = TRUE,
   select_near_zero_var = TRUE,
-  cpus = 8
+  cpus = 8,
+  cex_1D = 5.0  # Spacing between groups on a 1D swarm plot. 
   )
 {
   dir.create(problem_label, showWarnings = FALSE)
@@ -448,6 +453,7 @@ standard_full_splsda_pipeline = function(
                             progressBar = FALSE,
                             cpus = cpus
                             )
+  cat('Tuned parameters yield the following performance for each additional component:\n')
   plot(tune_splsda)
   print(tune_splsda$error.rate.class) 
   
@@ -467,12 +473,14 @@ standard_full_splsda_pipeline = function(
                col_per_group_map = col_per_group,
                show_legend = FALSE,
                dimensions_mm = c(50, 40), fontsize = 7, point_size = 1, spartan_plot = TRUE,
-               filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''))
+               filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''),
+               cex_1D = cex_1D)
   p  # Display graph.
   tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
-  tuned_splsda_perf$error.rate
-  tuned_splsda_perf$error.rate.class
-  # Write to file system. 
+  cat('sPLS-DA using tuned parameters gives the following performance:\n')
+  print(tuned_splsda_perf$error.rate)
+  print(tuned_splsda_perf$error.rate.class)
+  # Write same results to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
   print(tuned_splsda_perf$error.rate)
   print(tuned_splsda_perf$error.rate.class)
