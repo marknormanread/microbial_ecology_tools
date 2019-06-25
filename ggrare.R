@@ -11,7 +11,6 @@
 ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = TRUE, parallel = FALSE, se = TRUE,
                    selected_colors = NULL, line_weight=0.2) 
 {
-  
   x <- methods::as(phyloseq::otu_table(physeq_object), "matrix")
   if (phyloseq::taxa_are_rows(physeq_object)) { x <- t(x) }
   
@@ -34,6 +33,7 @@ ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = 
       return(data.frame(.S = y[1, ], Size = n, Sample = rownames(x)[i]))
     }
   }
+  
   if (parallel) {
     out <- parallel::mclapply(seq_len(nr), rarefun, mc.preschedule = FALSE)
   } else {
