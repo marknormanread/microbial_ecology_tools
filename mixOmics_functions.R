@@ -469,6 +469,8 @@ extract_taxa_possessing_enzyme = function(
 # 5. A 2D (or 1D, problem dependent) ordination of the TEST data in sPLS-DA transformed space. This may not be all the 
 #    dimensions, but will help with thinking about the data. 
 #
+# Requires the splsda_transform_newdata.R file be loaded.
+#
 # NOTE. I have not seriously attempted any classifiers on the sPLS-DA-transformed data. 
 # The distance-based classification that ensues may already be optimal. 
 extract_loo_folds_splsda_feature_select = function(
