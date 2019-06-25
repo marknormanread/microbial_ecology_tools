@@ -15,18 +15,19 @@ sample_sequencing_depth_by_groups = function(
   ) 
 {
   sample_depth_df = data.frame(sample_names, groups, num_reads)
-  p = ggplot(sample_depth_df, aes(x=groups, y=num_reads, color=groups))
-  p + geom_boxplot(outlier.shape=NA) +  # Turn off outliers, as we plot each datapoint below. 
-    geom_jitter(shape=16, position=position_jitter(0.35), size=2) +
-    ylab('Number of sequences') +
-    xlab('Groups') +
-    # scale_colour_brewer(palette=rainbow(n=9)) +
-    scale_colour_manual(values=col_per_group) +
-    theme_gray() +
-    theme(text = element_text(size=9)) +
-    theme(legend.position="none") +
-    theme(axis.text.x=element_blank())  # Turn of x axis tick labels
-  p
+  p = ggplot(sample_depth_df, aes(x=groups, y=num_reads, color=groups)) +
+      geom_boxplot(outlier.shape=NA) +  # Turn off outliers, as we plot each datapoint below. 
+      geom_jitter(shape=16, position=position_jitter(0.35), size=2) +
+      ylab('Number of sequences') +
+      xlab('Groups') +
+      # scale_colour_brewer(palette=rainbow(n=9)) +
+      scale_colour_manual(values=col_per_group) +
+      theme_gray() +
+      theme(text = element_text(size=9)) +
+      theme(legend.position="none") +
+      theme(axis.text.x=element_blank())  # Turn of x axis tick labels
+  print(p)
+  
   ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')
   
   # Stats on these data using PERMANOVA.
@@ -54,14 +55,16 @@ sample_richness_by_group = function(
   # Change the order of the samples on the x axis to be listed by experimental group. This was manually determined in the mapping file: "SortOrder"
   p$data$samples = as.character(p$data$samples)  # "Sample" here is data-set specific. It's the dataframe column being plotted on X
   p$data$samples = factor(p$data$samples, levels=levels(sample_data(phylo)$Sample))
-  p + geom_point(size=1.5) +
-    theme(legend.position="none") + 
-    theme(text = element_text(size=9)) +
-    theme(axis.text.x=element_blank()) + # Turn off x axis tick labels
-    # scale_color_brewer(palette = 'rainbow')
-    scale_colour_manual(values=col_per_group) +
-    ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')  # Adjust the width of the saved plot, stop sample IDs being squeezed. 
-  
+  p = p + geom_point(size=1.5) +
+      theme(legend.position="none") + 
+      theme(text = element_text(size=9)) +
+      theme(axis.title.x = element_blank()) + # Turn off x axis tick labels
+      # theme(axis.text.x=element_blank()) + # Turn off x axis tick labels
+      # scale_color_brewer(palette = 'rainbow')
+      scale_colour_manual(values=col_per_group)
+  print(p)  # Display graph. 
+  ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')  # Adjust the width of the saved plot, stop sample IDs being squeezed. 
+
   richness = estimate_richness(phylo)  # Actually used in the plot_richness function above. Same data. 
   richness[group_name] = sample_data(phylo)[, group_name]
   
