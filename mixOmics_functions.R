@@ -94,11 +94,23 @@ plot_feature_cumulative_abundance = function(
 # Consider if filtering is important before performing it. 
 # In targetted applications (looking at specific bugs or pathways) filtering may not be needed. 
 # For exploratory analyses with many features it can be beneficial in disuading overfitting. 
-prepare_mixomics = function(table,  # Supply as samples across columns and taxa/genes/predictors/features as rows. 
-                            pseudocount = 1,  # Select this to be small w.r.t. the magnitude of data in `table`. 
-                            filter_percent = 0.01  # Remove features representing < this value of all counts.
-                            )
+prepare_mixomics = function(
+  table,  # Supply as samples across columns and taxa/genes/predictors/features as rows. 
+  pseudocount = 1,  # Select this to be small w.r.t. the magnitude of data in `table`. 
+  filter_percent = 0.01  # Remove features representing < this value of all counts.
+  )
 {
+  # Notes. I have wondered if it is best to do the filtering before or after the relative abundance calculation. 
+  # It is possible to remove quite a lot of features through stringent filtering. For datasets where there are not
+  # many samples there can be an arguement for doing so, too many features relative to the number of instances
+  # can lead to overfitting. Under stringent filtering, the relative abundance is then calculated a comparatively 
+  # small subset of the total counts (e.g., 60% is readily achievable). Is this still really relative abundance?
+  # CLR transforms (and I imagine ILR transforms, though I haven't explicitly checked that) are dependent on all the 
+  # features included in the presented dataset. Post relative abundance calculations, a full and filtered dataset 
+  # will give different CLR values. Hence, to ensure that CLR values are not altered when filtering features we would
+  # need to calculate the CLR-transformed data BEFORE applying any filtering. This also means that the mixOmics 
+  # tools are given pre-CLR-transformed data, and not instructed to perform the CLR themselves on filtered data. 
+  
   table_mixomics = t(table)  # Transpose such that samples = rows (mixomics format, also more conventional)
   table_pseudocount = table_mixomics + pseudocount  # Can't log(0), which is used in CLR transform: add pseudocount.
   
@@ -480,7 +492,8 @@ extract_loo_folds_splsda_feature_select = function(
   feature_table,  # Samples as rows, features as columns.
   class_labels,  # Vector of factors, one item per sample.  
   ordinate_folds = FALSE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
-  col_per_group = NULL  # Vector of named variables: c('group' = '#FAFFFC', ...)
+  col_per_group = NULL,  # Vector of named variables: c('group' = '#FAFFFC', ...)
+  select_logratio = 'CLR'
   )
 {
   
@@ -527,7 +540,7 @@ extract_loo_folds_splsda_feature_select = function(
     colnames(test_Y_df) = c('Response')
     write.csv(test_Y_df, file=paste(fold_dir, '/test_Y_', test_sample_name, '.csv', sep=''),  quote=FALSE)
     
-    fold_splsda = splsda(train_X, Y=train_Y, ncomp=select_ncomp, logratio='CLR', keepX=select_keepX)
+    fold_splsda = splsda(train_X, Y=train_Y, ncomp=select_ncomp, logratio=select_logratio, keepX=select_keepX)
     write.csv(fold_splsda$variates$X, file=paste(fold_dir, '/splsda_transformed-train_X.csv', sep=''))
     if (ordinate_folds){
       p = ordinate(fold_splsda, background = TRUE,
@@ -570,6 +583,7 @@ standard_full_splsda_pipeline = function(
   select_error_mode = 'BER',  # {'BER', 'overall'}
   select_scale = TRUE,
   select_near_zero_var = TRUE,
+  logratio_transform = 'CLR',  # {'CLR', 'none'}
   cpus = 8,
   extract_loo_folds = FALSE,
   cex_1D = 5.0  # Spacing between groups on a 1D swarm plot. 
@@ -584,7 +598,7 @@ standard_full_splsda_pipeline = function(
   tune_splsda = tune.splsda(X = feature_table, 
                             Y = class_labels,  # Labels
                             ncomp = select_max_ncomp, 
-                            logratio = 'CLR', 
+                            logratio = logratio_transform, 
                             test.keepX = select_test_keepX,  
                             validation = select_validation,
                             dist = c(select_distance),  
@@ -605,7 +619,7 @@ standard_full_splsda_pipeline = function(
   print(select_keepX)
   tuned_splsda = splsda(X = feature_table, Y = class_labels, 
                         ncomp = select_ncomp, keepX = select_keepX,  # From tuning, above. 
-                        logratio = 'CLR', scale = select_scale,  # Microbiome data is compositional. 
+                        logratio = logratio_transform, scale = select_scale,  # Microbiome data is compositional. 
                         near.zero.var = select_near_zero_var)  # Set to true because microbiome data contains many zeros. 
   
   p = ordinate(tuned_splsda, background = TRUE,
@@ -639,7 +653,7 @@ standard_full_splsda_pipeline = function(
     permutation_analysis_results = statisitcal_significance_permutation_test(
       feature_table = feature_table, select_max_ncomp = select_max_ncomp, select_distance = select_distance,
       select_test_keepX = select_test_keepX, select_error_mode = select_error_mode, select_validation = select_validation,
-      feature_map = feature_map,
+      select_logratio = logratio_transform,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(levels(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
@@ -653,6 +667,7 @@ standard_full_splsda_pipeline = function(
       select_keepX = select_keepX,  # Vector of integers, one value per component. 
       feature_table = feature_table,  # Samples as rows, features as columns.
       class_labels = class_labels,  # Vector of factors, one item per sample.  
+      select_logratio = logratio_transform,
       ordinate_folds = TRUE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
       col_per_group = col_per_group)
   }
