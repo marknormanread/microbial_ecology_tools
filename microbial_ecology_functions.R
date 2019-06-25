@@ -1,6 +1,43 @@
 library(stats)
 library(mixOmics)
 
+
+#### Number of sequences per group, with instances (samples) explicitly shown and bar graphs indicating distribution. 
+sample_sequencing_depth_by_groups = function(
+  # Each of these are 
+  sample_names, # Vector of string, one item per instance/sample.
+  groups,  # Vector of class for each instance. Tested with type factor. Other types might work too. 
+  num_reads,  # Vector of numerical values, one item per insteance. 
+  data_path,  # Where to write data. Omit extentions, they are added here. 
+  col_per_group  # Vector of named items, c('group1' = '#E9A023', ...)
+  ) 
+{
+  sample_depth_df = data.frame(sample_names, groups, num_reads)
+  p = ggplot(sample_depth_df, aes(x=groups, y=num_reads, color=groups))
+  p + geom_boxplot(outlier.shape=NA) +  # Turn off outliers, as we plot each datapoint below. 
+    geom_jitter(shape=16, position=position_jitter(0.35), size=2) +
+    ylab('Number of sequences') +
+    xlab('Groups') +
+    # scale_colour_brewer(palette=rainbow(n=9)) +
+    scale_colour_manual(values=col_per_group) +
+    theme_gray() +
+    theme(text = element_text(size=9)) +
+    theme(legend.position="none") +
+    theme(axis.text.x=element_blank())  # Turn of x axis tick labels
+  p
+  ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')
+  
+  # Stats on these data using PERMANOVA.
+  print(adonis(num_reads ~ groups, data=sample_depth_df, method="euclidean"))  # Print to the notebook. 
+  # Same again, but save to the file system.
+  sink(paste(data_path, '.txt', sep=''))
+  print(adonis(num_reads ~ groups, data=sample_depth_df, method="euclidean"))
+  sink()
+  
+  return(p)
+}
+
+
 #### How well separated are the samples from two different experimental groups?
 # Two groups, A and B. 
 # Calculates all pairwise distances between samples in A with themselves. Same with samples from B. 
