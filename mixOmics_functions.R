@@ -206,7 +206,6 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                   # plot.title = element_text(size=fontsize)
                   # Haven't been able to turn off the plot title completely. Stuck with the grey bar at top.
                   )
-    
   }
 
   if (! is.null(filename)) {
@@ -560,6 +559,7 @@ standard_full_splsda_pipeline = function(
   col_per_group,  # Named vector, e.g. c('TRF' = '#F1234FF', ...)
   problem_label_human,  # Human-readable title. 
   problem_label,  # Machine-readable title. (avoid spaces, and capitalisation)
+  feature_map = NULL,
   perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
   select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
   select_validation = 'loo',
@@ -636,6 +636,7 @@ standard_full_splsda_pipeline = function(
     permutation_analysis_results = statisitcal_significance_permutation_test(
       feature_table = feature_table, select_max_ncomp = select_max_ncomp, select_distance = select_distance,
       select_test_keepX = select_test_keepX, select_error_mode = select_error_mode, select_validation = select_validation,
+      feature_map = feature_map,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(levels(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
