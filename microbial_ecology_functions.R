@@ -24,8 +24,8 @@ sample_sequencing_depth_by_groups = function(
       scale_colour_manual(values=col_per_group) +
       theme_gray() +
       theme(text = element_text(size=9)) +
-      theme(legend.position="none") +
-      theme(axis.text.x=element_blank())  # Turn of x axis tick labels
+      # theme(axis.text.x=element_blank()) + # Turn of x axis tick labels  
+      theme(legend.position="none")
   print(p)
   
   ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')
