@@ -1,16 +1,16 @@
 library(matrixStats)
 library(ggbeeswarm)
 
-#### Filter low value ASVs out of the dataset. 
+#### Filter low abundance features out of the dataset. 
 # Adapted from http://mixomics.org/mixmc/pre-processing/
 # Function to perform pre-filtering. 
-# To be retained, an ASV must comprise at least the given percentage of all reads found across all samples (pooled). 
-low_count_removal = function(data,  # ASV count data frame of size n (sample) x p (OTU)
+# To be retained, a feature must comprise at least the given percentage of all counts found across all samples (pooled). 
+low_count_removal = function(data,  # feature count data frame of size n (sample, rows) x p (features, cols)
                              percent=0.01)  # Cutoff chosen
 {
-  keep_asv = which(colSums(data) * 100 / (sum(colSums(data))) > percent)
-  data_filter = data[, keep_asv]
-  return(list(data_filter = data_filter, keep_asv = keep_asv))
+  keep_features = which(colSums(data) * 100 / (sum(colSums(data))) > percent)
+  data_filter = data[, keep_features]
+  return(list(data_filter = data_filter, keep_features = keep_features))
 }
 
 
@@ -140,6 +140,8 @@ ordinate = function(projection,  # A PCA or sPLS-DA
       col_per_group = color.mixo(1:length(levels(group)))
   } else {
     col_per_group = col_per_group_map[levels(group)]  # Extract the colours pertinent to the groups. 
+    if (! is.factor(group))
+      cat('\n\nWarning!! Supplied class labels are not factors, this is likely to cause an error.\n')
   }
 
   if (projection$ncomp == 1)
@@ -628,6 +630,7 @@ standard_full_splsda_pipeline = function(
   # Analyse the features informing each component. 
   extract_important_features_all_components(
     model = tuned_splsda, model_perf = tuned_splsda_perf, max_components = select_ncomp, plot_loadings = FALSE, 
+    feature_map = feature_map,  # Human reaadble feature names. 
     csv_file_prefix = paste(problem_label, '/', problem_label, '-splsda', sep = '')
   )
   
