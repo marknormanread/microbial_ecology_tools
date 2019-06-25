@@ -1,5 +1,7 @@
 library(stats)
 library(mixOmics)
+library(phyloseq)
+library(vegan)  # Adonis function.  
 
 
 #### Number of sequences per group, with instances (samples) explicitly shown and bar graphs indicating distribution. 
@@ -37,6 +39,47 @@ sample_sequencing_depth_by_groups = function(
   return(p)
 }
 
+
+sample_richness_by_group = function(
+  phylo,  # PhyloSeq object (requires sample-by-taxa table, taxonomy map and metadata - this can be an arse to prepare without errors)
+  group_name,  # String, EXACTLY as it appears in the metadata file. 
+  data_path,  # Where to write data. Omit extentions, they are added here. 
+  col_per_group  # Vector of named items, c('group1' = '#E9A023', ...)
+)
+{
+  # Plot richness
+  # Ignore the warning about singletons - pretty sure this is because we use DADA2 which doesn't produce as many 
+  # singletons as previous technologioes. 
+  p = plot_richness(phylo, x = group_name, measures = c("Observed","Shannon","InvSimpson"), color = group_name)
+  # Change the order of the samples on the x axis to be listed by experimental group. This was manually determined in the mapping file: "SortOrder"
+  p$data$samples = as.character(p$data$samples)  # "Sample" here is data-set specific. It's the dataframe column being plotted on X
+  p$data$samples = factor(p$data$samples, levels=levels(sample_data(phylo)$Sample))
+  p + geom_point(size=1.5) +
+    theme(legend.position="none") + 
+    theme(text = element_text(size=9)) +
+    theme(axis.text.x=element_blank()) + # Turn off x axis tick labels
+    # scale_color_brewer(palette = 'rainbow')
+    scale_colour_manual(values=col_per_group) +
+    ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')  # Adjust the width of the saved plot, stop sample IDs being squeezed. 
+  
+  richness = estimate_richness(phylo)  # Actually used in the plot_richness function above. Same data. 
+  richness[group_name] = sample_data(phylo)[, group_name]
+  
+  # Perform a PERMANOVA to seek statistically significant differences in groups, in terms of alpha diversity. 
+  # adonis(eval(parse(text=paste('Observed ~ ', group_name, sep=''))), data=richness, method="euclidean")
+  print(adonis(eval(parse(text=paste('Observed ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  print(adonis(eval(parse(text=paste('Shannon ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  print(adonis(eval(parse(text=paste('InvSimpson ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  # Repeat, but save to file system.
+  sink(paste(data_path, '_permanova.txt', sep=''))
+  cat('Observed taxa\n')
+  print(adonis(eval(parse(text=paste('Observed ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  cat('\n\nShannon taxa\n')
+  print(adonis(eval(parse(text=paste('Shannon ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  cat('\n\nInverse Simpson taxa\n')
+  print(adonis(eval(parse(text=paste('InvSimpson ~ ', group_name, sep=''))), data=richness, method="euclidean"))  # Print to the notebook.
+  sink()
+}
 
 #### How well separated are the samples from two different experimental groups?
 # Two groups, A and B. 
