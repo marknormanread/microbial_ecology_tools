@@ -45,7 +45,8 @@ sample_richness_by_group = function(
   phylo,  # PhyloSeq object (requires sample-by-taxa table, taxonomy map and metadata - this can be an arse to prepare without errors)
   group_name,  # String, EXACTLY as it appears in the metadata file. 
   data_path,  # Where to write data. Omit extentions, they are added here. 
-  col_per_group  # Vector of named items, c('group1' = '#E9A023', ...)
+  col_per_group,  # Vector of named items, c('group1' = '#E9A023', ...)
+  plot_means = FALSE
 )
 {
   # Plot richness
@@ -62,6 +63,16 @@ sample_richness_by_group = function(
       # theme(axis.text.x=element_blank()) + # Turn off x axis tick labels
       # scale_color_brewer(palette = 'rainbow')
       scale_colour_manual(values=col_per_group)
+  if (plot_means) {
+    p = p + stat_summary(  # Plot means. 
+      geom = "point",
+      fun.y = "mean",
+      col = "black",
+      size = 2,
+      shape = 1,
+      fill = NA
+    )
+  }
   print(p)  # Display graph. 
   ggsave(paste(data_path, '.pdf', sep=''), width=8, height=5.5, units='cm')  # Adjust the width of the saved plot, stop sample IDs being squeezed. 
 
