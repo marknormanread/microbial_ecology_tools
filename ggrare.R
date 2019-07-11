@@ -9,7 +9,7 @@
 #' @export
 
 ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = TRUE, parallel = FALSE, se = TRUE,
-                   selected_colors = NULL, line_weight=0.2) 
+                   col_per_grup = NULL, line_weight=0.2) 
 {
   x <- methods::as(phyloseq::otu_table(physeq_object), "matrix")
   if (phyloseq::taxa_are_rows(physeq_object)) { x <- t(x) }
@@ -68,8 +68,8 @@ ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = 
                                            y = ".S",
                                            group = "Sample",
                                            color = color))
-  if (! is.null(selected_colors))
-    p <- p + scale_colour_manual(values=selected_colors)
+  if (! is.null(col_per_grup))
+    p <- p + scale_colour_manual(values=col_per_grup)
   
   p <- p + ggplot2::labs(x = "Number of sequences", y = "Unique ASVs found per sample")
   
