@@ -627,7 +627,9 @@ standard_full_splsda_pipeline = function(
                plot_title = paste('sPLS-DA: ', problem_label_human, sep=''), name_samples = FALSE,
                col_per_group_map = col_per_group,
                show_legend = FALSE,
-               dimensions_mm = c(50, 40), fontsize = 7, point_size = 1, spartan_plot = TRUE,
+               dimensions_mm = ordination_dim_2d, 
+               sample_plot_characters = sample_plot_characters,
+               fontsize = 7, point_size = 1, spartan_plot = TRUE,
                filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''),
                cex_1D = cex_1D)
   p  # Display graph.
