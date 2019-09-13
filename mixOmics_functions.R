@@ -586,7 +586,9 @@ standard_full_splsda_pipeline = function(
   logratio_transform = 'CLR',  # {'CLR', 'none'}
   cpus = 8,
   extract_loo_folds = FALSE,
-  cex_1D = 5.0  # Spacing between groups on a 1D swarm plot. 
+  cex_1D = 5.0,  # Spacing between groups on a 1D swarm plot. 
+  ordination_dim_2d = c(50, 40),  # Physical dimensions of 2D ordinations pots. 
+  sample_plot_characters = 16  # Single char, else vector of n=len(samples).
   )
 {
   dir.create(problem_label, showWarnings = FALSE)
