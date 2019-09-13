@@ -128,7 +128,7 @@ ordinate = function(projection,  # A PCA or sPLS-DA
                     plot_title,
                     filename = NULL,  # Location to save plot. Remember to append '.pdf'. 
                     name_samples = FALSE,  # If TRUE, write name of each sample on the plot.
-                    sample_plot_characters = 16,  # Single char, else vector of n=len(samples). Used if name_samples=TRUE
+                    sample_plot_characters = 16,  # Single char, else vector of n=len(samples). Used if name_samples=FALSE
                     ellipse = FALSE,
                     background = NULL,
                     distance = "mahalanobis.dist", 
@@ -338,7 +338,7 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
   p_value_upper = (beaten_by_random + 1) * p_val_resolution
   p_value_lower = beaten_by_random * p_val_resolution
   results_text = paste(
-    'Highest accuracy from the real model was ', real_model_best_accuracy, '% (using ', select_error_mode, 'error calculations)\n',
+    'Highest accuracy from the real model was ', real_model_best_accuracy, '% (using ', select_error_mode, ' error calculations)\n',
     'Random group re-assignments beat the performance of the real data (accuracy) ', beaten_by_random, ' times\n',
     'This gives a p-value in range: ', 
     p_value_lower, ' < p <= ', p_value_upper, 
@@ -655,7 +655,7 @@ standard_full_splsda_pipeline = function(
       select_test_keepX = select_test_keepX, select_error_mode = select_error_mode, select_validation = select_validation,
       select_logratio = logratio_transform,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
-      graph_title = paste(problem_label_human, ' (', length(levels(class_labels)),' groups)', sep = ''),
+      graph_title = paste(problem_label_human, ' (', length(unique(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
   }
   
