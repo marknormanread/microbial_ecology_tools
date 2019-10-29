@@ -5,8 +5,9 @@ library(ggbeeswarm)
 # Adapted from http://mixomics.org/mixmc/pre-processing/
 # Function to perform pre-filtering. 
 # To be retained, a feature must comprise at least the given percentage of all counts found across all samples (pooled). 
-low_count_removal = function(data,  # feature count data frame of size n (sample, rows) x p (features, cols)
-                             percent=0.01)  # Cutoff chosen
+low_count_removal = function(
+  data,  # feature count data frame of size n (sample, rows) x p (features, cols). Features as columns. 
+  percent=0.01)  # Cutoff chosen
 {
   keep_features = which(colSums(data) * 100 / (sum(colSums(data))) > percent)
   data_filter = data[, keep_features]
@@ -97,7 +98,10 @@ plot_feature_cumulative_abundance = function(
 prepare_mixomics = function(
   table,  # Supply as samples across columns and taxa/genes/predictors/features as rows. 
   pseudocount = 1,  # Select this to be small w.r.t. the magnitude of data in `table`. 
-  filter_percent = 0.01  # Remove features representing < this value of all counts.
+  filter_percent = 0.01,  # Remove features representing < this value of all counts.
+  # Downstream analysis needs observations/taxa/features as columns and samples as rows. 
+  # Transpose the input table if it is not already in this format. 
+  transpose_table = TRUE  
   )
 {
   # Notes. I have wondered if it is best to do the filtering before or after the relative abundance calculation. 
@@ -110,8 +114,10 @@ prepare_mixomics = function(
   # will give different CLR values. Hence, to ensure that CLR values are not altered when filtering features we would
   # need to calculate the CLR-transformed data BEFORE applying any filtering. This also means that the mixOmics 
   # tools are given pre-CLR-transformed data, and not instructed to perform the CLR themselves on filtered data. 
-  
-  table_mixomics = t(table)  # Transpose such that samples = rows (mixomics format, also more conventional)
+  table_mixomics = table
+  if (transpose_table) {
+    table_mixomics = t(table)  # Transpose such that samples = rows (mixomics format, also more conventional)
+  }
   table_pseudocount = table_mixomics + pseudocount  # Can't log(0), which is used in CLR transform: add pseudocount.
   
   filter_result = low_count_removal(table_pseudocount, percent=filter_percent)
@@ -493,7 +499,8 @@ extract_loo_folds_splsda_feature_select = function(
   class_labels,  # Vector of factors, one item per sample.  
   ordinate_folds = FALSE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
   col_per_group = NULL,  # Vector of named variables: c('group' = '#FAFFFC', ...)
-  select_logratio = 'CLR'
+  select_logratio = 'CLR',
+  problem_label = '.'
   )
 {
   
@@ -673,6 +680,7 @@ standard_full_splsda_pipeline = function(
       class_labels = class_labels,  # Vector of factors, one item per sample.  
       select_logratio = logratio_transform,
       ordinate_folds = TRUE,  # 2D (or 1D) ordination of the sPLS-DA trained on the training data. 
-      col_per_group = col_per_group)
+      col_per_group = col_per_group,
+      problem_label = problem_label)
   }
 }
