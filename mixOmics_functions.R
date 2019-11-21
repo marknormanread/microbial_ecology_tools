@@ -665,6 +665,11 @@ standard_full_splsda_pipeline = function(
   {
     prediction_vector = tuned_splsda_perf$class[['mahalanobis.dist']][, repetitions, select_ncomp]
     confusion_matrix = get.confusion_matrix(truth = class_labels, predicted = prediction_vector)
+    write.table(
+      confusion_matrix, 
+      file=paste(problem_label, '/', problem_label, '-splsda-confusion_matrix.csv', sep=''), 
+      quote=FALSE, sep=',', row.names=TRUE, col.names=TRUE
+    )
     result['confusion_matrix'] = confusion_matrix
     print('Confusion matrix:')
     print(confusion_matrix)
