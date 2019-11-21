@@ -598,6 +598,7 @@ standard_full_splsda_pipeline = function(
   sample_plot_characters = 16  # Single char, else vector of n=len(samples).
   )
 {
+  result = list()  # Populate as we go.
   dir.create(problem_label, showWarnings = FALSE)
   if (max(select_test_keepX) > dim(feature_table)[2]){
     cat('Warning! Selected to test more features per component than there are features. Curtailing select_test_keepX.')
@@ -626,6 +627,7 @@ standard_full_splsda_pipeline = function(
   select_keepX = tune_splsda$choice.keepX[1:select_ncomp]  # Number of features per component. 
   cat('Features per component:\n')
   print(select_keepX)
+  
   tuned_splsda = splsda(X = feature_table, Y = class_labels, 
                         ncomp = select_ncomp, keepX = select_keepX,  # From tuning, above. 
                         logratio = logratio_transform, scale = select_scale,  # Microbiome data is compositional. 
@@ -642,14 +644,40 @@ standard_full_splsda_pipeline = function(
                filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''),
                cex_1D = cex_1D)
   p  # Display graph.
+  
   tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
+  result['tuned_splsda_perf'] = tuned_splsda_perf
+  
   cat('sPLS-DA using tuned parameters gives the following performance:\n')
   print(tuned_splsda_perf$error.rate)
   print(tuned_splsda_perf$error.rate.class)
+  
+  # Gague model performance using a confusion matrix. 
+  # This only works under leave-one-out cross validation, as each sample in the dataset is withheld once for testing. 
+  # (If other forms of cross validation then it might still work as long as only a single repetiton is used; if multiple
+  # repetitions were used then the same sample would be tested against multiple times. Could get a confusion matrix for 
+  # that, but that isn't currently implemented). 
+  # The following returns a matrix, samples x repetitions x dimensions. 
+  confusion_matrix = NA
+  repetitions = dim(tuned_splsda_perf$class[[1]])[2]  # Predicted classes given by $class
+  if (repetitions == 1 && 
+      'mahalanobis' %in% select_distance) # Needs modification to use other distance metrics.
+  {
+    prediction_vector = tuned_splsda_perf$class[['mahalanobis.dist']][, repetitions, select_ncomp]
+    confusion_matrix = get.confusion_matrix(truth = class_labels, predicted = prediction_vector)
+    result['confusion_matrix'] = confusion_matrix
+    print('Confusion matrix:')
+    print(confusion_matrix)
+  }
+  
   # Write same results to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
+  print('Error rate')
   print(tuned_splsda_perf$error.rate)
+  print('Error rate by class')
   print(tuned_splsda_perf$error.rate.class)
+  print('Confusion matrix:')
+  print(confusion_matrix)
   sink()
   
   # Analyse the features informing each component. 
@@ -659,7 +687,8 @@ standard_full_splsda_pipeline = function(
     csv_file_prefix = paste(problem_label, '/', problem_label, '-splsda', sep = '')
   )
   
-  # Permutation based statistics. 
+  # Permutation based statistics, to generate p values by applying the same sPLS-DA model tuning pipeline but to 
+  # randomised data. 
   if (perform_permutation_analysis) {
     permutation_analysis_results = statisitcal_significance_permutation_test(
       feature_table = feature_table, select_max_ncomp = select_max_ncomp, select_distance = select_distance,
@@ -683,4 +712,5 @@ standard_full_splsda_pipeline = function(
       col_per_group = col_per_group,
       problem_label = problem_label)
   }
+  return(result)
 }
