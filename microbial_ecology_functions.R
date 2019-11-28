@@ -220,13 +220,17 @@ within_between_group_distances = function(
 # (https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224/full) 
 # This is Euclidean distance in centred logratio transformed data.
 aitchison_distance = function(taxa_matrix,  # Taxa/Features as columns, samples as rows
-                              lr='CLR'  # Can also be 'ILR' for Isometric Logratio Transform. 
+                              lr='CLR'  # choose from {'CLR', 'ILR', 'None'} 
                               ) 
 {
-  taxa_clr = mixOmics::logratio.transfo(taxa_matrix,  # Samples as rows, Taxa/Features as columns. 
-                                        logratio=lr, offset=0)
+  if (lr != 'None') {
+    taxa_transformed = mixOmics::logratio.transfo(taxa_matrix,  # Samples as rows, Taxa/Features as columns. 
+                                          logratio=lr, offset=0)
+  } else {
+    taxa_transformed = taxa_matrix
+  }
   
-  clr_dist_raw = dist(taxa_clr, method='euclidean', diag=FALSE)  # Returns some weird 'dist' class ...
+  clr_dist_raw = dist(taxa_transformed, method='euclidean', diag=FALSE)  # Returns some weird 'dist' class ...
   # ... turn it into something better behaved, with functioning colnames and rownames. 
   clr_dist = as.matrix(clr_dist_raw) 
   return (clr_dist)
