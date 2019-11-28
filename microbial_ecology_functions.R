@@ -220,7 +220,7 @@ within_between_group_distances = function(
 # (https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224/full) 
 # This is Euclidean distance in centred logratio transformed data.
 aitchison_distance = function(taxa_matrix,  # Taxa/Features as columns, samples as rows
-                              lr='CLR'  # choose from {'CLR', 'ILR', 'None'} 
+                              lr='CLR'  # choose from {'CLR', 'ILR', 'None'}. None if data already transformed. 
                               ) 
 {
   if (lr != 'None') {
