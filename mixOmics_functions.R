@@ -374,7 +374,7 @@ extract_important_features_all_components = function(
   # a human-readable string (column named "name").
   feature_map = NULL)
 {
-  all_component_features = list()  # Populate in following loop.
+  all_component_features_list = list()  # Populate in following loop.
   # Analyse each component in turn. Plot loadings, and output table that also describes stability in selection under LOO.
   for (component in 1:max_components) {
     contributions = plotLoadings(
@@ -386,16 +386,16 @@ extract_important_features_all_components = function(
     comp_features = extract_important_features(
       model_perf, contributions,
       component=component,
-      filename=paste(csv_file_prefix, '_loadingsDim', component, '_selectedFeatures.csv', sep=''),
+      filename=paste0(csv_file_prefix, '_loadingsDim', component, '_selectedFeatures.csv'),
       feature_map=feature_map)
-    all_component_features[[paste('component', component, sep='')]] = comp_features
+    all_component_features_list[[paste0('component', component)]] = comp_features
     if (plot_loadings)
       pl = plotLoadings(model, comp=component, method='median',  # Advised for microbiome data
                         contrib='max')  
   }
   # How many features used in each component, and for each group. 
   for (component in 1:max_components) {
-    used_features = all_component_features[[component]][complete.cases(all_component_features[[component]]), ]
+    used_features = all_component_features_list[[component]][complete.cases(all_component_features_list[[component]]), ]
     cat('\nComponent', component, 'employed', dim(used_features)[1], 'features\n')
     groups = unique(used_features$GroupContrib)
     for (group in groups) {
@@ -404,6 +404,13 @@ extract_important_features_all_components = function(
     }
   }
   
+  # Combine data for all individual model components into a single dataframe. 
+  all_component_features = Reduce(rbind, all_component_features_list)
+  write.csv(all_component_features, file=paste0(csv_file_prefix, '_all_model_components.csv'))
+    # all_component_features[[1]]
+  # for (component in 2:max_component) {
+  #   all_component_features = rbind(all_component_features, all_component_features[[component]])
+  # }
   return(invisible(all_component_features))
 }
 
@@ -449,6 +456,7 @@ extract_important_features = function(
           abs(feature_component_contributions$loading),
           decreasing=TRUE)
     , ]  # All columns
+  
   feature_component_contributions$model_dimension = component
   write.csv(feature_component_contributions, file=filename)
   return(feature_component_contributions)
@@ -676,7 +684,7 @@ standard_full_splsda_pipeline = function(
     write.table(
       confusion_matrix, 
       file=paste(problem_label, '/', problem_label, '-splsda-confusion_matrix.csv', sep=''), 
-      quote=FALSE, sep=',', row.names=TRUE, col.names=TRUE
+      quote=FALSE, sep=',', row.names=TRUE, col.names=NA
     )
     result['confusion_matrix'] = confusion_matrix
     print('Confusion matrix:')
