@@ -118,9 +118,17 @@ within_between_group_distances = function(
   plot_size = c(34, 22)  # mm
 )
 {
-  dir.create(plotsave_prefix, showWarnings = FALSE)  # Create if it doesn't already exist. 
-  if(is.factor(group_vector) == FALSE)
+  if (is.factor(group_vector) == FALSE)
   {  stop("Please supply the group_vector as a factor.")  }
+  if (length(group_vector) != dim(distance_matrix)[1] ||
+      length(group_vector) != dim(distance_matrix)[2])
+  {  stop(paste0(
+        "Essential that the items in the distance_matrix (rows, cols) correspond EXACTLY to the ",
+        "order and number of items in the group_vector; variables supplied did not match."
+         )
+    )
+  }
+  dir.create(plotsave_prefix, showWarnings = FALSE)  # Create if it doesn't already exist. 
   
   group_set = as.vector(unique(group_vector))  # Contrast only the groups in the supplied vector
   # Store pairwise group comparisons in terms of kolmogorov smirnov D and associated  p values in these nxn dataframes.
@@ -141,7 +149,7 @@ within_between_group_distances = function(
     group_b = pairwise_combinations[2, comparison]
     
     a_vs_a = distance_matrix[group_vector == group_a, # Each of these produces a boolean vector.
-                           group_vector == group_a]
+                             group_vector == group_a]
     mask = lower.tri(a_vs_a)  # Retruns a boolean mask of dim(a_vs_a). Removes the diagonal too.
     a_vs_a_vect = a_vs_a[mask]  # Transforms to a vector.
     
