@@ -108,7 +108,7 @@ within_between_group_distances = function(
   # Euclidean distance between CLR-transformed data recommended, as it copes well with compositional data. 
   distance_matrix,  # n x n matrix of distances between items. 
   group_vector,  # Eg column from metadata file. Order of items must match those in distance matrix.
-  datasave_prefix=NA,
+  datasave_prefix=NA,  # NA disables. String will save files to specified location on file system.
   graph_distributions=TRUE,  # Be cautious, can create a lot of plots - all pairwise of groups. 
   plotsave_prefix='',  # To save to a different directory, provide path through this prefix.
   # If TRUE, plot separate distributions for within groups A and B distances. Otherwise, combine them.
