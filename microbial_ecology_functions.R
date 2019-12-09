@@ -117,6 +117,8 @@ within_between_group_distances = function(
 )
 {
   dir.create(plotsave_prefix, showWarnings = FALSE)  # Creat if it doesn't already exist. 
+  if(is.factor(group_vector) == FALSE)
+  {  stop("Please supply the group_vector as a factor.")  }
   
   group_set = as.vector(unique(group_vector))  # Contrast only the groups in the supplied vector
   # Store pairwise group comparisons in terms of kolmogorov smirnov D and associated  p values in these nxn dataframes.
