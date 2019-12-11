@@ -406,6 +406,7 @@ extract_important_features_all_components = function(
   
   # Combine data for all individual model components into a single dataframe. 
   all_component_features = Reduce(rbind, all_component_features_list)
+  all_component_features = all_component_features[complete.cases(all_component_features), ]
   write.csv(all_component_features, file=paste0(csv_file_prefix, '_all_model_components.csv'))
     # all_component_features[[1]]
   # for (component in 2:max_component) {
