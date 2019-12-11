@@ -594,10 +594,10 @@ extract_loo_folds_splsda_feature_select = function(
 standard_full_splsda_pipeline = function(
   feature_table,  # DataFrame or matrix. Features as columns, instances as rows. Typically relative abundance. 
   class_labels,  # Vector of factors. One item per instance, in the same order as feature_table. 
-  col_per_group,  # Named vector, e.g. c('TRF' = '#F1234FF', ...)
+  col_per_group = NULL,  # Named vector, e.g. c('TRF' = '#F1234FF', ...)
   problem_label_human,  # Human-readable title. 
   problem_label,  # Machine-readable title. (avoid spaces, and capitalisation)
-  feature_map = NULL,
+  feature_map = NULL,  # dataframe, feature IDs (e.g. ASV sequences) as rownames, single column 'name'
   perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
   select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
   select_validation = 'loo',
@@ -615,8 +615,15 @@ standard_full_splsda_pipeline = function(
   )
 {
   result = list()  # Populate as we go.
+  
+  # If colours not specified by user.
+  if (is.null(col_per_group)) {
+      colours = rainbow(n=length(levels(class_labels)))
+      col_per_group = setNames(colours, levels(class_labels))
+  } 
+  
   dir.create(problem_label, showWarnings = FALSE)
-  if (max(select_test_keepX) > dim(feature_table)[2]){
+  if (max(select_test_keepX) > dim(feature_table)[2]) {
     cat('Warning! Selected to test more features per component than there are features. Curtailing select_test_keepX.')
     select_test_keepX = select_test_keepX[select_test_keepX < dim(feature_table)[2]]
   }
