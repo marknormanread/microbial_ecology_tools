@@ -6,7 +6,7 @@ Mark N. Read, 2019
 
 
 import inspect
-import plot_utils
+import microbial_ecology_tools.plot_utils as plot_utils
 import pandas as pd
 import numpy as np
 from os import makedirs
