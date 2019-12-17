@@ -78,12 +78,18 @@ def supervised_prediction_workflow(
         result.predictors = predictors
 
         # Stratify for classification, not for regression.
-        stratify = None if learning_mode is 'regression' else y
-        X_train, X_test, result.y_train, result.y_test = train_test_split(
-            predictors, y, test_size=available_data_as_test_proportion,
-            random_state=test_train_split_seed,
-            stratify=stratify, shuffle=True
-        )
+        if available_data_as_test_proportion > 0.0:
+            stratify = None if learning_mode is 'regression' else y
+            X_train, X_test, result.y_train, result.y_test = train_test_split(
+                predictors, y, test_size=available_data_as_test_proportion,
+                random_state=test_train_split_seed,
+                stratify=stratify, shuffle=True
+            )
+        else:
+            X_train = predictors
+            result.y_train = y
+            X_test = []
+            result.y_test = []
 
         if cv_mode is 'loo':
             cv_mode = LeaveOneOut()
