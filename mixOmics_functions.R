@@ -645,6 +645,7 @@ standard_full_splsda_pipeline = function(
                             cpus = cpus
                             )
   cat('Tuned parameters yield the following performance for each additional component:\n')
+  cat('(values reported are errors; 0 = no misclassifications)\n')
   plot(tune_splsda)
   print(tune_splsda$error.rate.class) 
   
