@@ -241,7 +241,7 @@ ordinate = function(projection,  # A PCA or sPLS-DA
 
 
 ordinate_1d = function(splsda_model, 
-                       shape_vector = NULL,
+                       shape_vector = NULL,  # vector of characters indicating shape per sample, else single value.
                        col_per_group = NULL,
                        y_label = 'Groups\nseparated',
                        graph_path = NULL,  # Location on filesystem. Remember to provide file extension. 
@@ -249,19 +249,21 @@ ordinate_1d = function(splsda_model,
                        cex_1D = 5.0  # Spacing within groups on the swarm plot. 
                        )
 {
-  data_df = data.frame(comp = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
+  data_df = data.frame(value = splsda_model$variates$X, component=rep('1', length(splsda_model$variates$X)),
                        group_labels = splsda_model$Y, 
                        shape = shape_vector)
-  names(data_df)[which(names(data_df) == 'comp.1')] = 'value'  # Rename column. 
+  names(data_df)[which(names(data_df) == 'comp1')] = 'value'  # Rename column. 
   if (! is.null(shape_vector)) {
-    # There is shape information; separate groups by this too. 
+    # There is shape information; separate groups by this too.
     p = ggplot(data_df, aes(x=value, y=component, color=group_labels, shape=shape)) +
-      # cex adjusts point spacing within group; dodge.width adjusts spacing between groups. 
-      geom_beeswarm(cex = cex_1D, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape))
+      # cex adjusts point spacing within group; dodge.width adjusts spacing between groups.
+      geom_beeswarm(cex = cex_1D, groupOnX = FALSE, size = 1, dodge.width=1.3, aes(color=group_labels, shape=shape)) +
+      scale_shape_identity()  # Allows single integer value to set sample plot symbols. 
   } else {
     p = ggplot(data_df, aes(x=value, y=component, group=group_labels)) +
       geom_beeswarm(cex = 1.2, groupOnX = FALSE, size = 1, dodge.width=1.5, aes(color=group_labels, shape=group_labels))
   }
+  
   p = p +
     theme(text = element_text(size=8)) +
     theme(legend.position="none") +
@@ -658,17 +660,32 @@ standard_full_splsda_pipeline = function(
                         logratio = logratio_transform, scale = select_scale,  # Microbiome data is compositional. 
                         near.zero.var = select_near_zero_var)  # Set to true because microbiome data contains many zeros. 
   
-  p = ordinate(tuned_splsda, background = TRUE,
-               group = class_labels,
-               plot_title = paste('sPLS-DA: ', problem_label_human, sep=''), name_samples = FALSE,
-               col_per_group_map = col_per_group,
-               show_legend = FALSE,
-               dimensions_mm = ordination_dim_2d, 
-               sample_plot_characters = sample_plot_characters,
-               fontsize = 7, point_size = 1, spartan_plot = TRUE,
-               filename = paste(problem_label, '/', problem_label, '-splsda.pdf', sep=''),
-               cex_1D = cex_1D)
-  p  # Display graph.
+  graph_path = paste0(problem_label, '/', problem_label, '-splsda.pdf')
+  if (select_ncomp == 1)
+  {
+    p = ordinate_1d(
+      splsda_model=tuned_splsda, 
+      shape_vector = sample_plot_characters,
+      col_per_group = col_per_group,
+      y_label = 'Groups\nseparated',
+      graph_path = graph_path,  # Location on filesystem. Remember to provide file extension. 
+      width_mm = ordination_dim_2d[1], height_mm = ordination_dim_2d[2],
+      cex_1D = cex_1D  # Spacing within groups on the swarm plot. 
+    )    
+  } else {
+    p = ordinate(tuned_splsda, background = TRUE,
+                 group = class_labels,
+                 plot_title = paste('sPLS-DA: ', problem_label_human, sep=''), name_samples = FALSE,
+                 col_per_group_map = col_per_group,
+                 show_legend = FALSE,
+                 dimensions_mm = ordination_dim_2d, 
+                 sample_plot_characters = sample_plot_characters,
+                 fontsize = 7, point_size = 1, spartan_plot = TRUE,
+                 filename = graph_path,
+                 cex_1D = cex_1D)
+  }
+  plot(p)  # Display graph.
+  result['ordination_plot'] = p
   
   tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
   result['tuned_splsda_perf'] = tuned_splsda_perf
