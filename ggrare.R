@@ -67,7 +67,7 @@ ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = 
                        ggplot2::aes_string(x = "Size",
                                            y = ".S",
                                            group = "Sample",
-                                           color = color)) +
+                                           color = color))
 
   if (! is.null(col_per_group))
     p <- p + scale_colour_manual(values=col_per_group)

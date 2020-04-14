@@ -113,6 +113,7 @@ within_between_group_distances = function(
   plotsave_prefix='',  # To save to a different directory, provide path through this prefix.
   # If TRUE, plot separate distributions for within groups A and B distances. Otherwise, combine them.
   separate_within_distributions=FALSE,
+  bonferroni=TRUE,
   titles=TRUE,
   xlimits=NULL,  # or c(lower_limit, upper_limit)
   plot_size = c(34, 22)  # mm
@@ -163,9 +164,12 @@ within_between_group_distances = function(
     
     ks = ks.test(x=within_group_distances, y=between_group_distances, 
                  alternative=c('greater'))  # Hypothesise that within (x) not greater than between (y)
-    # Adjust for multiple comparisons. 
-    p_value = p.adjust(ks$p.value, method='bonferroni', n=num_comparisons)
-    
+    p_value = ks$p.value
+    if (bonferroni) {
+      # Adjust for multiple comparisons. 
+      p_value = p.adjust(ks$p.value, method='bonferroni', n=num_comparisons)
+    }
+
     # Write to dataframe of results
     group_differences_ks[group_b, group_a] = ks$statistic
     group_differences_p[group_b, group_a] = p_value
