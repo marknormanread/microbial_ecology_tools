@@ -611,6 +611,7 @@ standard_full_splsda_pipeline = function(
   select_near_zero_var = TRUE,
   logratio_transform = 'CLR',  # {'CLR', 'none'}
   cpus = 8,
+  seed = 123,
   extract_loo_folds = FALSE,
   cex_1D = 5.0,  # Spacing between groups on a 1D swarm plot. 
   ordination_dim_2d = c(50, 40),  # Physical dimensions of 2D ordinations pots. 
@@ -631,19 +632,19 @@ standard_full_splsda_pipeline = function(
     select_test_keepX = select_test_keepX[select_test_keepX < dim(feature_table)[2]]
   }
   
-  tune_splsda = tune.splsda(X = feature_table, 
-                            Y = class_labels,  # Labels
-                            ncomp = select_max_ncomp, 
-                            logratio = logratio_transform, 
-                            test.keepX = select_test_keepX,  
-                            validation = select_validation,
-                            dist = c(select_distance),  
-                            measure = select_error_mode,
-                            scale = select_scale,
-                            near.zero.var = select_near_zero_var,
-                            progressBar = FALSE,
-                            cpus = cpus
-                            )
+  tune_splsda = tune.splsda(
+    X = feature_table, 
+    Y = class_labels,  # Labels
+    ncomp = select_max_ncomp, 
+    logratio = logratio_transform, 
+    test.keepX = select_test_keepX,  
+    validation = select_validation,
+    dist = c(select_distance),  
+    measure = select_error_mode,
+    scale = select_scale,
+    near.zero.var = select_near_zero_var,
+    progressBar = FALSE,
+    cpus = cpus)
   cat('Tuned parameters yield the following performance for each additional component:\n')
   cat('(reported values are error rates; 0 indicates no misclassifications):\n')
   plot(tune_splsda)
@@ -738,12 +739,21 @@ standard_full_splsda_pipeline = function(
   # randomised data. 
   if (perform_permutation_analysis) {
     permutation_analysis_results = statisitcal_significance_permutation_test(
-      feature_table = feature_table, select_max_ncomp = select_max_ncomp, select_distance = select_distance,
-      select_test_keepX = select_test_keepX, select_error_mode = select_error_mode, select_validation = select_validation,
+      feature_table = feature_table, 
+      select_max_ncomp = select_max_ncomp, 
+      select_distance = select_distance,
+      select_test_keepX = select_test_keepX, 
+      select_error_mode = select_error_mode, 
+      select_validation = select_validation,
       select_logratio = logratio_transform,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(unique(class_labels)),' groups)', sep = ''),
-      real_model_performance = tuned_splsda_perf, real_model_classes = class_labels, repetitions = 50)
+      real_model_performance = tuned_splsda_perf, 
+      real_model_classes = class_labels, 
+      repetitions = 50,
+      select_cpus = cpus,
+      seed = seed
+      )
   }
   
   # Extract sPLS-DA-transformed training and test data generated from within a LOO loop. 
