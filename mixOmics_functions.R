@@ -294,7 +294,9 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                                                      select_distance,  # e.g. 'mahalanobis.dist'
                                                      select_test_keepX,  # c(<integer values>)
                                                      select_error_mode,  # 'BER' or 'overall'
-                                                     select_validation,  # e.g. 'loo'
+                                                     select_validation,  # 'loo' or 'Mfold'
+                                                     select_folds = 5,  # Applicable only for Mfold.
+                                                     select_nrepeat = 5,
                                                      select_logratio = 'CLR',
                                                      select_cpus = 8, 
                                                      data_write_path = NULL,  # Do not include extensions e.g. '.pdf'
@@ -315,6 +317,8 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                               logratio=select_logratio, 
                               test.keepX=select_test_keepX,  
                               validation=select_validation,
+                              folds=select_folds,
+                              nrepeat=select_nrepeat,
                               dist=c(select_distance),  
                               measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.  
                               scale=TRUE,
@@ -603,7 +607,14 @@ standard_full_splsda_pipeline = function(
   feature_map = NULL,  # dataframe, feature IDs (e.g. ASV sequences) as rownames, single column 'name'
   perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
   select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
-  select_validation = 'loo',
+  # Note that if you use leave one out cross validation, then every combination of training/validation is used. 
+  # Performance evaluation is stable, as it uses the same (all possible) set of combinations. 
+  # If you select cross-validation, the way data is partitioned into training/validation folds can be different
+  # under building of sPLS-DA than under its subsequent evaluation, and hence you can get slightly surprising 
+  # reported error rates. E.g., sPLS-DA tuning may select 4 components, but 'perf' can report 3 as having been optimal. 
+  select_validation = 'loo',  # 'loo' for leave one out cross validation, 'Mfold' otherwise (must specify select_folds).
+  select_folds = 10,  # Only relevant if select_validation='Mfold'
+  select_nrepeat = 1,  # Only relevant if select_validation='Mfold', how many times to repeat cross validaiton proceedure. 
   select_test_keepX = c(1, 2, 3, 4, seq(5, dim(feature_table)[2], 5)),
   select_distance = c('mahalanobis'),
   select_error_mode = 'BER',  # {'BER', 'overall'}
@@ -639,6 +650,8 @@ standard_full_splsda_pipeline = function(
     logratio = logratio_transform, 
     test.keepX = select_test_keepX,  
     validation = select_validation,
+    folds = select_folds,
+    nrepeat = select_nrepeat,
     dist = c(select_distance),  
     measure = select_error_mode,
     scale = select_scale,
@@ -688,7 +701,11 @@ standard_full_splsda_pipeline = function(
   plot(p)  # Display graph.
   result['ordination_plot'] = p
   
-  tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
+  tuned_splsda_perf = perf(
+    tuned_splsda, 
+    validation=select_validation, folds=select_folds, nrepeat=select_nrepeat, 
+    progressBar=FALSE, auc=FALSE
+  )
   result['tuned_splsda_perf'] = tuned_splsda_perf
   
   cat('sPLS-DA using tuned parameters gives the following performance:\n')
@@ -745,6 +762,7 @@ standard_full_splsda_pipeline = function(
       select_test_keepX = select_test_keepX, 
       select_error_mode = select_error_mode, 
       select_validation = select_validation,
+      select_folds = select_folds,
       select_logratio = logratio_transform,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(unique(class_labels)),' groups)', sep = ''),
