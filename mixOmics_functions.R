@@ -737,6 +737,9 @@ standard_full_splsda_pipeline = function(
   
   # Write same results to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
+  print(paste('Based on optimal performance, selecting', select_ncomp, 'principal component(s) in building the sPLS-DA.\n'))
+  print('Features per component:\n')
+  print(select_keepX)
   print('Error rate')
   print(tuned_splsda_perf$error.rate)
   print('Error rate by class')
