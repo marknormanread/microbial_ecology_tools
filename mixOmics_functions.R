@@ -606,6 +606,7 @@ standard_full_splsda_pipeline = function(
   problem_label,  # Machine-readable title. (avoid spaces, and capitalisation)
   feature_map = NULL,  # dataframe, feature IDs (e.g. ASV sequences) as rownames, single column 'name'
   perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
+  permutation_analysis_repetitions = 50,
   select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
   # Note that if you use leave one out cross validation, then every combination of training/validation is used. 
   # Performance evaluation is stable, as it uses the same (all possible) set of combinations. 
@@ -621,7 +622,7 @@ standard_full_splsda_pipeline = function(
   select_scale = TRUE,
   select_near_zero_var = TRUE,
   logratio_transform = 'CLR',  # {'CLR', 'none'}
-  cpus = 8,
+  cpus = 2,
   seed = 123,
   extract_loo_folds = FALSE,
   cex_1D = 5.0,  # Spacing between groups on a 1D swarm plot. 
@@ -642,6 +643,10 @@ standard_full_splsda_pipeline = function(
     cat('Warning! Selected to test more features per component than there are features. Curtailing select_test_keepX.')
     select_test_keepX = select_test_keepX[select_test_keepX < dim(feature_table)[2]]
   }
+  
+  # Save copies of the feature and response data, to relate results to the problem specification. 
+  write.csv(feature_table, paste0(problem_label, '/data_feature_table.csv'))
+  write.csv(class_labels, paste0(problem_label, '/data_response_vector.csv'))
   
   tune_splsda = tune.splsda(
     X = feature_table, 
@@ -737,13 +742,17 @@ standard_full_splsda_pipeline = function(
   
   # Write same results to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
-  print(paste('Based on optimal performance, selecting', select_ncomp, 'principal component(s) in building the sPLS-DA.\n'))
+  print(paste('Based on optimal performance,  selecting', select_ncomp, 'principal component(s) in building the sPLS-DA.'))
+  print('')
   print('Features per component:\n')
   print(select_keepX)
+  print('')
   print('Error rate')
   print(tuned_splsda_perf$error.rate)
+  print('')
   print('Error rate by class')
   print(tuned_splsda_perf$error.rate.class)
+  print('')
   print('Confusion matrix:')
   print(confusion_matrix)
   sink()
@@ -771,7 +780,7 @@ standard_full_splsda_pipeline = function(
       graph_title = paste(problem_label_human, ' (', length(unique(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, 
       real_model_classes = class_labels, 
-      repetitions = 50,
+      repetitions = permutation_analysis_repetitions,
       select_cpus = cpus,
       seed = seed
       )
