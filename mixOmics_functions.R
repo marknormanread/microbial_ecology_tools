@@ -296,7 +296,9 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                                                      select_distance,  # e.g. 'mahalanobis.dist'
                                                      select_test_keepX,  # c(<integer values>)
                                                      select_error_mode,  # 'BER' or 'overall'
-                                                     select_validation,  # e.g. 'loo'
+                                                     select_validation,  # 'loo' or 'Mfold'
+                                                     select_folds = 5,  # Applicable only for Mfold.
+                                                     select_nrepeat = 5,
                                                      select_logratio = 'CLR',
                                                      select_cpus = 8, 
                                                      data_write_path = NULL,  # Do not include extensions e.g. '.pdf'
@@ -319,8 +321,10 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
                               logratio=select_logratio,
                               test.keepX=select_test_keepX,
                               validation=select_validation,
-                              dist=c(select_distance),
-                              measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.
+                              folds=select_folds,
+                              nrepeat=select_nrepeat,
+                              dist=c(select_distance),  
+                              measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.  
                               scale=TRUE,
                               near.zero.var=TRUE,
                               progressBar=FALSE,
@@ -622,15 +626,23 @@ standard_full_splsda_pipeline = function(
   problem_label,  # Machine-readable title. (avoid spaces, and capitalisation)
   feature_map = NULL,  # dataframe, feature IDs (e.g. ASV sequences) as rownames, single column 'name'
   perform_permutation_analysis = FALSE,  # Generate p-values? Extremely computationally expensive. 
+  permutation_analysis_repetitions = 50,
   select_max_ncomp,  # How many components to attempt when tuning the sPLS-DA. 
-  select_validation = 'loo',
+  # Note that if you use leave one out cross validation, then every combination of training/validation is used. 
+  # Performance evaluation is stable, as it uses the same (all possible) set of combinations. 
+  # If you select cross-validation, the way data is partitioned into training/validation folds can be different
+  # under building of sPLS-DA than under its subsequent evaluation, and hence you can get slightly surprising 
+  # reported error rates. E.g., sPLS-DA tuning may select 4 components, but 'perf' can report 3 as having been optimal. 
+  select_validation = 'loo',  # 'loo' for leave one out cross validation, 'Mfold' otherwise (must specify select_folds).
+  select_folds = 10,  # Only relevant if select_validation='Mfold'
+  select_nrepeat = 1,  # Only relevant if select_validation='Mfold', how many times to repeat cross validaiton proceedure. 
   select_test_keepX = c(1, 2, 3, 4, seq(5, dim(feature_table)[2], 5)),
   select_distance = c('mahalanobis'),
   select_error_mode = 'BER',  # {'BER', 'overall'}
   select_scale = TRUE,
   select_near_zero_var = TRUE,
   logratio_transform = 'CLR',  # {'CLR', 'none'}
-  cpus = 8,
+  cpus = 2,
   seed = 123,
   extract_loo_folds = FALSE,
   cex_1D = 5.0,  # Spacing between groups on a 1D swarm plot. 
@@ -652,6 +664,10 @@ standard_full_splsda_pipeline = function(
     select_test_keepX = select_test_keepX[select_test_keepX < dim(feature_table)[2]]
   }
   
+  # Save copies of the feature and response data, to relate results to the problem specification. 
+  write.csv(feature_table, paste0(problem_label, '/data_feature_table.csv'))
+  write.csv(class_labels, paste0(problem_label, '/data_response_vector.csv'))
+  
   tune_splsda = tune.splsda(
     X = feature_table, 
     Y = class_labels,  # Labels
@@ -659,6 +675,8 @@ standard_full_splsda_pipeline = function(
     logratio = logratio_transform, 
     test.keepX = select_test_keepX,  
     validation = select_validation,
+    folds = select_folds,
+    nrepeat = select_nrepeat,
     dist = c(select_distance),  
     measure = select_error_mode,
     scale = select_scale,
@@ -708,7 +726,11 @@ standard_full_splsda_pipeline = function(
   plot(p)  # Display graph.
   result['ordination_plot'] = p
   
-  tuned_splsda_perf = perf(tuned_splsda, validation="loo", progressBar=FALSE, auc=FALSE)
+  tuned_splsda_perf = perf(
+    tuned_splsda, 
+    validation=select_validation, folds=select_folds, nrepeat=select_nrepeat, 
+    progressBar=FALSE, auc=FALSE
+  )
   result['tuned_splsda_perf'] = tuned_splsda_perf
   
   cat('sPLS-DA using tuned parameters gives the following performance:\n')
@@ -740,10 +762,17 @@ standard_full_splsda_pipeline = function(
   
   # Write same results to file system. 
   sink(paste(problem_label, '/', problem_label, '-splsda-performance.txt', sep=''))
+  print(paste('Based on optimal performance,  selecting', select_ncomp, 'principal component(s) in building the sPLS-DA.'))
+  print('')
+  print('Features per component:\n')
+  print(select_keepX)
+  print('')
   print('Error rate')
   print(tuned_splsda_perf$error.rate)
+  print('')
   print('Error rate by class')
   print(tuned_splsda_perf$error.rate.class)
+  print('')
   print('Confusion matrix:')
   print(confusion_matrix)
   sink()
@@ -765,12 +794,13 @@ standard_full_splsda_pipeline = function(
       select_test_keepX = select_test_keepX, 
       select_error_mode = select_error_mode, 
       select_validation = select_validation,
+      select_folds = select_folds,
       select_logratio = logratio_transform,
       data_write_path = paste(problem_label, '/', problem_label, '-splsda_RANDOMISED', sep = ''), 
       graph_title = paste(problem_label_human, ' (', length(unique(class_labels)),' groups)', sep = ''),
       real_model_performance = tuned_splsda_perf, 
       real_model_classes = class_labels, 
-      repetitions = 50,
+      repetitions = permutation_analysis_repetitions,
       select_cpus = cpus,
       seed = seed
       )
