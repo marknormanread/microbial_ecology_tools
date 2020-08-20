@@ -358,14 +358,14 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
   
   # Plot model accuracies under randomisation against how similar those randomisations were to the real data. 
   ggplot(df, aes(x=ari_similarities, y=accuracies)) +
-    geom_point()  + 
+    geom_point(shape = 1)  + 
+    theme(text = element_text(size=8)) +
     # Represent where the real model's accuacy lay.
     geom_hline(yintercept = real_model_best_accuracy, color = 'red') +
     ggtitle(graph_title) +
-    ylab('Highest accuracies following tuning (%)') +
+    ylab('Accuracies (%)') +
     xlab('Similarity to real data (ARI score)') +
-    ylim(c(0, 100)) + xlim(c(-1, 1)) +
-    theme(text = element_text(size=8))
+    ylim(c(0, 100)) # + xlim(c(-1, 1))
   if (! is.null(data_write_path)) {
     ggsave(paste(data_write_path, '_v_ARI.pdf', sep = ''), width=7, height=5, units='cm')
   }  
