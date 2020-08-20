@@ -4,7 +4,9 @@
 # Mark N. Read, 2019
 
 library(matrixStats)
+library(mclust)
 library(ggbeeswarm)
+
 
 #### Filter low abundance features out of the dataset. 
 # Adapted from http://mixomics.org/mixmc/pre-processing/
@@ -306,17 +308,19 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
   set.seed(seed)  # Ensure reproducibility
   repetitions = repetitions
   lowest_errors = rep(NA, repetitions)
+  ari_similarities = rep(NA, repetitions)
   for (repetition in 1:repetitions)
   {
     randomised_categories = factor(sample(real_model_classes))  # Shuffle the class labels assigned to our samples.
-    tune_splsda = tune.splsda(X=feature_table, 
+    ari_similarities[repetition] = mclust::adjustedRandIndex(real_model_classes, randomised_categories)
+    tune_splsda = tune.splsda(X=feature_table,
                               Y=randomised_categories,
-                              ncomp=select_max_ncomp, 
-                              logratio=select_logratio, 
-                              test.keepX=select_test_keepX,  
+                              ncomp=select_max_ncomp,
+                              logratio=select_logratio,
+                              test.keepX=select_test_keepX,
                               validation=select_validation,
-                              dist=c(select_distance),  
-                              measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.  
+                              dist=c(select_distance),
+                              measure=select_error_mode,  # Our classes are unbalanced, this is a better measure.
                               scale=TRUE,
                               near.zero.var=TRUE,
                               progressBar=FALSE,
@@ -333,7 +337,9 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
             n=1))
   highest_accuracies = (1 - lowest_errors) * 100
   
-  df = data.frame(accuracies = highest_accuracies)
+  df = data.frame(accuracies = highest_accuracies,
+                  ari_similarities = ari_similarities)
+  # Plot cumulative distribution of model accuracies under permutation and indicate where the real data accuracy lay also. 
   p = ggplot(df, aes(accuracies)) + stat_ecdf(geom = "step") + 
     # Represent where the real model's accuacy lay. 
     geom_vline(xintercept=real_model_best_accuracy, color='red') +
@@ -345,6 +351,20 @@ statisitcal_significance_permutation_test = function(seed=123, repetitions=50,
   if (! is.null(data_write_path)) {
     ggsave(paste(data_write_path, '.pdf', sep = ''), width=7, height=5, units='cm')
   }
+  
+  # Plot model accuracies under randomisation against how similar those randomisations were to the real data. 
+  ggplot(df, aes(data = df, aes(x=ari_similarities, y=accuracies))) +
+    geom_point() + 
+    # Represent where the real model's accuacy lay. 
+    geom_hline(xintercept=real_model_best_accuracy, color='red') +
+    ggtitle(graph_title) +
+    ylab('Highest accuracies following tuning (%)') + 
+    xlab('Similarity to real data (ARI score)') +
+    ylim(c(0, 100)) + xlim(c(-1, 1)) +
+    theme(text = element_text(size=8))
+  if (! is.null(data_write_path)) {
+    ggsave(paste(data_write_path, '_v_ARI.pdf', sep = ''), width=7, height=5, units='cm')
+  }  
   
   beaten_by_random = sum(sort(highest_accuracies) >= real_model_best_accuracy)
   p_val_resolution = 1 / repetitions
